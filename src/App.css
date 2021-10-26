@@ -1,0 +1,9 @@
+.Notebook {
+  width: 100%;
+}
+
+.NotebookEntry {
+  border-width: 1pt;
+  border-style: solid;
+  border-color: black;
+}
