@@ -7,3 +7,31 @@
   border-style: solid;
   border-color: black;
 }
+
+.Gutter {
+  width: 14px; /* 11px */
+  float: left;
+  display: inline;
+}
+
+.FocusGutter {
+  width: 14px; /* 11px */
+  float: left;
+  background-color: lightgray;
+  display: inline;
+}
+
+.PointerGutter {
+  width: 14px;
+  float: left;
+  background-color: lightgray;
+  display: inline;
+}
+
+.PointerGutter:hover {
+  cursor: pointer;
+}
+
+.Lower .NotebookBody {
+  background-color: rgb(240, 240, 240);
+}
