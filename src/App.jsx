@@ -1,6 +1,7 @@
 import React from "react"
-import './App.css';
+import "./App.css";
 import { BsBraces, BsChevronDown, BsChevronRight, BsCodeSlash, BsFillPinFill, BsPin } from "react-icons/bs";
+import { CodeMirror } from "./components/CodeMirror";
 
 const NotebookEntryType_JAVASCRIPT = 0;
 // const NotebookEntryType_MARKDOWN = 1;
@@ -97,6 +98,7 @@ class NotebookEntry extends React.Component {
 
     this.state = {
       model: props.value,
+      text: props.value.text,
       pinned: props.value.pinned,
       open: props.value.pinned,
       focus: false
@@ -104,6 +106,7 @@ class NotebookEntry extends React.Component {
 
     this.focusOn = this.focusOn.bind(this);
     this.focusOff = this.focusOff.bind(this);
+    this.changeText = this.changeText.bind(this);
   }
 
   attemptToggleChevron() {
@@ -115,13 +118,14 @@ class NotebookEntry extends React.Component {
   }
 
   toHTML() {
+    console.log("state: ", this.state);
     const type = this.state.model.type;
 
     if (type === NotebookEntryType_HTML)
-      return this.state.model.text;
+      return this.state.text;
     else
       // eslint-disable-next-line
-      return eval(this.state.model.text);
+      return eval(this.state.text);
   }
 
   focusOn() {
@@ -130,6 +134,10 @@ class NotebookEntry extends React.Component {
 
   focusOff() {
     this.setState(state => ({ focus: false }));
+  }
+
+  changeText(text, change) {
+    this.setState(state => ({ text }));
   }
 
   render() {
@@ -145,7 +153,18 @@ class NotebookEntry extends React.Component {
         <div className="Lower">
           <GutterPin value={this} />
           <GutterEntryType value={this} />
-          <div className="NotebookBody">{this.state.model.text}</div>
+          <div className="NotebookBody">
+            <CodeMirror
+              value={this.state.text}
+              onChange={this.changeText}
+              options={{
+                viewportMargin: Infinity,
+                lineNumbers: false,
+                lineWrapping: true,
+                mode: this.state.model.type === NotebookEntryType_HTML ? "htmlmixed" : "javascript"
+              }}
+            />
+          </div>
         </div>
       </div>);
 
