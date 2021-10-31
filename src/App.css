@@ -3,33 +3,50 @@
 }
 
 .NotebookEntry {
-  border-width: 1pt;
+  /* border-width: 1pt;
   border-style: solid;
-  border-color: black;
+  border-color: black; */
+  padding: 2pt;
 }
 
 .Gutter {
-  width: 14px; /* 11px */
-  float: left;
-  display: inline;
+  /* width: 14px; */
+  flex: 0 0 14px;
 }
 
 .FocusGutter {
   width: 14px; /* 11px */
-  float: left;
   background-color: lightgray;
-  display: inline;
+  flex: 0 0 14px;
 }
 
 .PointerGutter {
   width: 14px;
-  float: left;
   background-color: lightgray;
-  display: inline;
+  flex: 0 0 14px;
 }
 
 .PointerGutter:hover {
   cursor: pointer;
+}
+
+.Closed {
+  display: flex;
+  flex-direction: row;
+}
+
+.Upper {
+  display: flex;
+  flex-direction: row;
+}
+
+.Lower {
+  display: flex;
+  flex-direction: row;
+}
+
+.NotebookBody {
+  flex: 0 0 100%;
 }
 
 .Lower .NotebookBody {
