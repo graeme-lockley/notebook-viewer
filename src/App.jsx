@@ -92,6 +92,13 @@ class GutterEntryType extends React.Component {
   }
 }
 
+function EntryResults(props) {
+  return (<div
+    className={`NotebookBody-${props.result.status}`}
+    dangerouslySetInnerHTML={{ __html: props.result.text }}
+  />);
+}
+
 class NotebookEntry extends React.Component {
   constructor(props) {
     super(props);
@@ -118,14 +125,15 @@ class NotebookEntry extends React.Component {
   }
 
   toHTML() {
-    console.log("state: ", this.state);
     const type = this.state.model.type;
 
-    if (type === NotebookEntryType_HTML)
-      return this.state.text;
-    else
+    try {
       // eslint-disable-next-line
-      return eval(this.state.text);
+      const text = (type === NotebookEntryType_HTML) ? this.state.text : eval(this.state.text);
+      return { status: 'OK', text };
+    } catch (e) {
+      return { status: 'ERROR', text: e.message };
+    }
   }
 
   focusOn() {
@@ -148,7 +156,7 @@ class NotebookEntry extends React.Component {
         <div className="Upper">
           <GutterChevron value={this} />
           <Gutter value={this} />
-          <div className="Body" dangerouslySetInnerHTML={{ __html: html }} />
+          <EntryResults result={html} />
         </div>
         <div className="Lower">
           <GutterPin value={this} />
@@ -172,7 +180,7 @@ class NotebookEntry extends React.Component {
       <div className="Closed">
         <GutterChevron value={this} />
         <Gutter value={this} />
-        <div className="NotebookBody" dangerouslySetInnerHTML={{ __html: html }} />
+        <EntryResults result={html} />
       </div>
     </div>);
   }

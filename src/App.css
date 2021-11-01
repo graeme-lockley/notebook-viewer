@@ -45,10 +45,11 @@
   flex-direction: row;
 }
 
-.NotebookBody {
+.NotebookBody-OK {
   flex: 1 1 100%;
 }
 
-.Lower .NotebookBody {
-  background-color: rgb(240, 240, 240);
+.NotebookBody-ERROR {
+  flex: 1 1 100%;
+  color: red;
 }
