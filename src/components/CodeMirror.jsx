@@ -14,7 +14,7 @@ export class CodeMirror extends React.Component {
   constructor(props) {
     super(props);
 
-    this.state = { text: props.text, isFocused: false }
+    this.state = { isFocused: false }
     this.codeMirrorValueChanged = this.codeMirrorValueChanged.bind(this);
     this.cursorActivity = this.cursorActivity.bind(this);
     this.scrollChanged = this.scrollChanged.bind(this);
