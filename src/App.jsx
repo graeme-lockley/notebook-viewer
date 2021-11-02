@@ -23,13 +23,11 @@ const notebook = [
   }
 ];
 
-class Gutter extends React.Component {
-  render() {
-    if (this.props.value.state.focus)
-      return <div className="FocusGutter" ><p /></div>
+function Gutter(props) {
+  if (props.value.state.focus)
+    return <div className="FocusGutter" ><p /></div>
 
-    return <div className="Gutter" ><p /></div>
-  }
+  return <div className="Gutter" ><p /></div>
 }
 
 class GutterChevron extends React.Component {
@@ -79,17 +77,15 @@ class GutterPin extends React.Component {
   }
 }
 
-class GutterEntryType extends React.Component {
-  render() {
-    if (!this.props.value.state.focus)
-      return <div className="Gutter" ><p /></div>
+function GutterEntryType(props) {
+  if (!props.value.state.focus)
+    return <div className="Gutter" ><p /></div>
 
-    const type = this.props.value.state.model.type;
+  const type = props.value.state.model.type;
 
-    return (type === NotebookEntryType_HTML)
-      ? <div className="FocusGutter"><BsCodeSlash size="0.7em" /></div>
-      : <div className="FocusGutter"><BsBraces size="0.7em" /></div>;
-  }
+  return (type === NotebookEntryType_HTML)
+    ? <div className="FocusGutter"><BsCodeSlash size="0.7em" /></div>
+    : <div className="FocusGutter"><BsBraces size="0.7em" /></div>;
 }
 
 function EntryResults(props) {
