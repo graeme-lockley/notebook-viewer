@@ -9,24 +9,8 @@
   padding: 2pt;
 }
 
-.Gutter {
-  /* width: 14px; */
-  flex: 0 0 14px;
-}
-
-.FocusGutter {
-  width: 14px; /* 11px */
-  background-color: lightgray;
-  flex: 0 0 14px;
-}
-
-.PointerGutter {
-  width: 14px;
-  background-color: lightgray;
-  flex: 0 0 14px;
-}
-
-.PointerGutter:hover {
+/* Add to any element to change the cursor to a pointer */
+.NE-Pointer:hover {
   cursor: pointer;
 }
 

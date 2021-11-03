@@ -1,12 +1,8 @@
 import React from "react"
 import "./App.css";
-import { BsBraces, BsChevronDown, BsChevronRight, BsCodeSlash, BsFillPinFill, BsPin } from "react-icons/bs";
 import { CodeMirror } from "./components/CodeMirror";
-
-const NotebookEntryType_JAVASCRIPT = 0;
-// const NotebookEntryType_MARKDOWN = 1;
-const NotebookEntryType_HTML = 2;
-// const NotebookEntryType_TEX = 3;
+import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
+import { NotebookEntryType_HTML, NotebookEntryType_JAVASCRIPT } from "./components/NotebookEntryType";
 
 const notebook = [
   {
@@ -22,71 +18,6 @@ const notebook = [
     pinned: true
   }
 ];
-
-function Gutter(props) {
-  if (props.value.state.focus)
-    return <div className="FocusGutter" ><p /></div>
-
-  return <div className="Gutter" ><p /></div>
-}
-
-class GutterChevron extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.clickChevron = this.clickChevron.bind(this);
-  }
-
-  clickChevron() {
-    this.props.value.attemptToggleChevron();
-  }
-
-  render() {
-    if (!this.props.value.state.focus)
-      return <Gutter value={this.props.value} />
-
-    if (!this.props.value.state.open)
-      return <div className="PointerGutter" onClick={this.clickChevron}><BsChevronRight size="0.7em" /></div>
-
-    if (this.props.value.state.pinned)
-      return <div className="FocusGutter" onClick={this.clickChevron}><BsChevronDown size="0.7em" /></div>
-
-    return <div className="PointerGutter" onClick={this.clickChevron}><BsChevronDown size="0.7em" /></div>
-  }
-}
-
-class GutterPin extends React.Component {
-  constructor(props) {
-    super(props);
-
-    this.clickPin = this.clickPin.bind(this);
-  }
-
-  clickPin() {
-    this.props.value.attemptTogglePin();
-  }
-
-  render() {
-    if (!this.props.value.state.focus)
-      return <Gutter value={this.props.value} />
-
-    if (this.props.value.state.pinned)
-      return <div className="PointerGutter" onClick={this.clickPin}><BsFillPinFill size="0.7em" /></div>
-
-    return <div className="PointerGutter" onClick={this.clickPin}><BsPin size="0.7em" /></div>
-  }
-}
-
-function GutterEntryType(props) {
-  if (!props.value.state.focus)
-    return <div className="Gutter" ><p /></div>
-
-  const type = props.value.state.model.type;
-
-  return (type === NotebookEntryType_HTML)
-    ? <div className="FocusGutter"><BsCodeSlash size="0.7em" /></div>
-    : <div className="FocusGutter"><BsBraces size="0.7em" /></div>;
-}
 
 function EntryResults(props) {
   return (<div
@@ -107,6 +38,8 @@ class NotebookEntry extends React.Component {
       focus: false
     };
 
+    this.attemptToggleChevron = this.attemptToggleChevron.bind(this);
+    this.attemptTogglePin = this.attemptTogglePin.bind(this);
     this.focusOn = this.focusOn.bind(this);
     this.focusOff = this.focusOff.bind(this);
     this.changeText = this.changeText.bind(this);
@@ -150,13 +83,24 @@ class NotebookEntry extends React.Component {
     if (this.state.open)
       return (<div className="NotebookEntry" onMouseEnter={this.focusOn} onMouseLeave={this.focusOff}>
         <div className="Upper">
-          <GutterChevron value={this} />
-          <Gutter value={this} />
-          <EntryResults result={html} />
+          <GutterChevron
+            open={this.state.open}
+            pinned={this.state.pinned}
+            focus={this.state.focus}
+            onClick={this.attemptToggleChevron} />
+          <Gutter
+            focus={this.state.focus} />
+          <EntryResults
+            result={html} />
         </div>
         <div className="Lower">
-          <GutterPin value={this} />
-          <GutterEntryType value={this} />
+          <GutterPin
+            pinned={this.state.pinned}
+            focus={this.state.focus}
+            onClick={this.attemptTogglePin} />
+          <GutterEntryType
+            type={this.state.model.type}
+            focus={this.state.focus} />
           <div className="NotebookBody">
             <CodeMirror
               value={this.state.text}
@@ -174,9 +118,15 @@ class NotebookEntry extends React.Component {
 
     return (<div className="NotebookEntry" onMouseEnter={this.focusOn} onMouseLeave={this.focusOff}>
       <div className="Closed">
-        <GutterChevron value={this} />
-        <Gutter value={this} />
-        <EntryResults result={html} />
+        <GutterChevron
+          open={this.state.open}
+          pinned={this.state.pinned}
+          focus={this.state.focus}
+          onClick={this.attemptToggleChevron} />
+        <Gutter
+          focus={this.state.focus} />
+        <EntryResults
+          result={html} />
       </div>
     </div>);
   }

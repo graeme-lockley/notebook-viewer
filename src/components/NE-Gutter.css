@@ -1,0 +1,14 @@
+.NE-Gutter {
+  flex: 0 0 14px;
+}
+
+.NE-Gutter-focus {
+  width: 14px;
+  background-color: lightgray;
+  flex: 0 0 14px;
+}
+
+/* Add to any element to change the cursor to a pointer */
+.NE-Pointer:hover {
+  cursor: pointer;
+}
