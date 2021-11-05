@@ -41,3 +41,36 @@
   flex: 1 1 100%;
   color: red;
 }
+
+.NE-Popup {
+  display: block;
+  position: absolute;
+  background: white;
+  min-width: 160px;
+  box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+  z-index: 999;
+}
+
+.NE-PopupEntry {
+  color: black;
+  padding: 5px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.NE-PopupEntry:hover {
+  background-color: lightgrey;
+  cursor: pointer;
+}
+
+.NE-PopupEntry-default {
+  color: blue;
+  padding: 5px 16px;
+  text-decoration: none;
+  display: block;
+}
+
+.NE-PopupEntry-default:hover {
+  background-color: lightgrey;
+  cursor: pointer;
+}

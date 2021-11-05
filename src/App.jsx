@@ -1,8 +1,9 @@
 import React from "react"
+import { BsBraces, BsCodeSlash, BsMarkdown, BsSlashCircle } from "react-icons/bs";
 import "./App.css";
 import { CodeMirror } from "./components/CodeMirror";
 import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
-import { NotebookEntryType_HTML, NotebookEntryType_JAVASCRIPT } from "./components/NotebookEntryType";
+import { NotebookEntryType_HTML, NotebookEntryType_MARKDOWN, NotebookEntryType_JAVASCRIPT, NotebookEntryType_TEX } from "./components/NotebookEntryType";
 
 const notebook = [
   {
@@ -33,13 +34,17 @@ class NotebookEntry extends React.Component {
     this.state = {
       model: props.value,
       text: props.value.text,
+      type: props.value.type,
       pinned: props.value.pinned,
       open: props.value.pinned,
+      entryTypePopup: false,
       focus: false
     };
 
     this.attemptToggleChevron = this.attemptToggleChevron.bind(this);
     this.attemptTogglePin = this.attemptTogglePin.bind(this);
+    this.attemptToggleEntryTypePopup = this.attemptToggleEntryTypePopup.bind(this);
+    this.setEntryType = this.setEntryType.bind(this);
     this.focusOn = this.focusOn.bind(this);
     this.focusOff = this.focusOff.bind(this);
     this.changeText = this.changeText.bind(this);
@@ -53,8 +58,16 @@ class NotebookEntry extends React.Component {
     this.setState(state => ({ pinned: !state.pinned }));
   }
 
+  attemptToggleEntryTypePopup(e) {
+    this.setState(state => ({ entryTypePopup: state.entryTypePopup === false ? true : false }));
+  }
+
+  setEntryType(et) {
+    this.setState(state => ({ type: et, entryTypePopup: undefined }));
+  }
+
   toHTML() {
-    const type = this.state.model.type;
+    const type = this.state.type;
 
     try {
       // eslint-disable-next-line
@@ -70,7 +83,7 @@ class NotebookEntry extends React.Component {
   }
 
   focusOff() {
-    this.setState(state => ({ focus: false }));
+    this.setState(state => ({ focus: false, entryTypePopup: false }));
   }
 
   changeText(text, change) {
@@ -99,8 +112,18 @@ class NotebookEntry extends React.Component {
             focus={this.state.focus}
             onClick={this.attemptTogglePin} />
           <GutterEntryType
-            type={this.state.model.type}
-            focus={this.state.focus} />
+            type={this.state.type}
+            focus={this.state.focus}
+            onClick={this.attemptToggleEntryTypePopup}>
+            {this.state.entryTypePopup &&
+              <div className="NE-Popup">
+                <div className={this.state.type === NotebookEntryType_JAVASCRIPT ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.setEntryType(NotebookEntryType_JAVASCRIPT)}><BsBraces size="0.7em" /> JavaScript</div>
+                <div className={this.state.type === NotebookEntryType_MARKDOWN ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.setEntryType(NotebookEntryType_MARKDOWN)}><BsMarkdown size="0.7em"/> Markdown</div>
+                <div className={this.state.type === NotebookEntryType_HTML ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.setEntryType(NotebookEntryType_HTML)}><BsCodeSlash size="0.7em" /> HTML</div>
+                <div className={this.state.type === NotebookEntryType_TEX ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.setEntryType(NotebookEntryType_TEX)}><BsSlashCircle size="0.7em"/> TeX</div>
+              </div>
+            }
+          </GutterEntryType>
           <div className="NotebookBody">
             <CodeMirror
               value={this.state.text}
@@ -109,7 +132,7 @@ class NotebookEntry extends React.Component {
                 viewportMargin: Infinity,
                 lineNumbers: false,
                 lineWrapping: true,
-                mode: this.state.model.type === NotebookEntryType_HTML ? "htmlmixed" : "javascript"
+                mode: this.state.type === NotebookEntryType_HTML ? "htmlmixed" : "javascript"
               }}
             />
           </div>

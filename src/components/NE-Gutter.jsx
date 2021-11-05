@@ -35,7 +35,7 @@ export function GutterEntryType(props) {
         return <Gutter focus={false} />
 
     return (props.type === NotebookEntryType_HTML)
-        ? <div className="NE-Gutter-focus"><BsCodeSlash size="0.7em" /></div>
-        : <div className="NE-Gutter-focus"><BsBraces size="0.7em" /></div>;
+        ? <div className="NE-Gutter-focus" onClick={props.onClick}><BsCodeSlash size="0.7em" />{props.children}</div>
+        : <div className="NE-Gutter-focus" onClick={props.onClick}><BsBraces size="0.7em" />{props.children}</div>;
 }
 
