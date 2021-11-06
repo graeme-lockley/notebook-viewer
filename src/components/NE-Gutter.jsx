@@ -1,6 +1,6 @@
-import { BsBraces, BsChevronDown, BsChevronRight, BsCodeSlash, BsFillPinFill, BsPin } from "react-icons/bs";
+import { BsBraces, BsChevronDown, BsChevronRight, BsCodeSlash, BsFillPinFill, BsMarkdown, BsPin, BsSlashCircle, BsXLg } from "react-icons/bs";
 
-import { NotebookEntryType_HTML } from "./NotebookEntryType";
+import { NotebookEntryType_HTML, NotebookEntryType_JAVASCRIPT, NotebookEntryType_MARKDOWN, NotebookEntryType_TEX } from "./NotebookEntryType";
 import "./NE-Gutter.css"
 
 export function Gutter(props) {
@@ -34,8 +34,18 @@ export function GutterEntryType(props) {
     if (!props.focus)
         return <Gutter focus={false} />
 
-    return (props.type === NotebookEntryType_HTML)
-        ? <div className="NE-Gutter-focus" onClick={props.onClick}><BsCodeSlash size="0.7em" />{props.children}</div>
-        : <div className="NE-Gutter-focus" onClick={props.onClick}><BsBraces size="0.7em" />{props.children}</div>;
+    switch (props.type) {
+        case NotebookEntryType_HTML:
+            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsCodeSlash size="0.7em" />{props.children}</div>;
+        case NotebookEntryType_JAVASCRIPT:
+            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsBraces size="0.7em" />{props.children}</div>;
+        case NotebookEntryType_MARKDOWN:
+            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsMarkdown size="0.7em" />{props.children}</div>;
+        case NotebookEntryType_TEX:
+            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsSlashCircle size="0.7em" />{props.children}</div>;
+        default:
+            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsXLg size="0.7em" />{props.children}</div>;
+
+    }
 }
 

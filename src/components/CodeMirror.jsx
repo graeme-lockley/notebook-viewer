@@ -7,8 +7,9 @@ import "codemirror/lib/codemirror.css";
 
 import "./CodeMirror.css";
 
-require("codemirror/mode/javascript/javascript.js")
 require("codemirror/mode/htmlmixed/htmlmixed.js")
+require("codemirror/mode/javascript/javascript.js")
+require("codemirror/mode/markdown/markdown.js")
 
 export class CodeMirror extends React.Component {
   constructor(props) {
