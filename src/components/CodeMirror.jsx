@@ -77,7 +77,8 @@ export class CodeMirror extends React.Component {
       this.props.className
     );
 
-    // console.log("editorClassName: ", editorClassName);
+    if (this.codeMirror !== undefined && this.codeMirror.getOption("mode") !== this.props.options.mode)
+      this.codeMirror.setOption("mode", this.props.options.mode);
 
     return (
       <div className={editorClassName}>

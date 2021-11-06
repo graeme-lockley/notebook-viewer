@@ -147,6 +147,12 @@ class NotebookEntry extends React.Component {
     });
   }
 
+  calculateMode(type) {
+    return type === NotebookEntryType_HTML ? "htmlmixed"
+      : type === NotebookEntryType_JAVASCRIPT ? "javascript"
+        : "markdown";
+  }
+
   render() {
     if (this.state.open)
       return (<div className="NotebookEntry" onMouseEnter={this.focusOn} onMouseLeave={this.focusOff}>
@@ -187,7 +193,7 @@ class NotebookEntry extends React.Component {
                 viewportMargin: Infinity,
                 lineNumbers: false,
                 lineWrapping: true,
-                mode: this.state.type === NotebookEntryType_HTML ? "htmlmixed" : this.state.type === NotebookEntryType_JAVASCRIPT ? "javascript" : "markdown"
+                mode: this.calculateMode(this.state.type)
               }}
             />
           </div>
