@@ -16,9 +16,15 @@ export class Runtime {
 class Module {
     constructor() {
         this.bindings = {};
+        this.anonymousNameCounter = 0;
     }
 
     defineVariable(name, dependencies, value) {
+        if (name === null || name === undefined) {
+            this.anonymousNameCounter += 1;
+            name = `__$${this.anonymousNameCounter}`;
+        }
+
         const variable = this.bindings[name];
 
         if (variable === undefined) {
@@ -111,64 +117,39 @@ class Variable {
         this.sequence += 1;
         const currentSequence = this.sequence;
 
-        if (this.dependencies.length === 0) {
-            if (this.value && typeof this.value.then === "function") {
-                this.result = { type: 'PENDING', value: this.value };
-                this.notify();
-                this.value.then(actual => {
-                    if (this.sequence === currentSequence) {
-                        this.result = { type: 'DONE', value: actual };
-                        this.notify()
-                    }
+        const updateResult = (type, value) => {
+            this.result = { type, value };
+            this.notify()
+        };
+
+        const verifyValue = (value) => {
+            if (isPromise(value)) {
+                updateResult('PENDING', value);
+                value.then(actual => {
+                    if (this.sequence === currentSequence)
+                        updateResult('DONE', actual);
                     else
                         logger.info(`Dropping promise: ${this.name}: ${actual}`);
                 }).catch(err => {
-                    if (this.sequence === currentSequence) {
-                        this.result = { type: 'ERROR', value: err };
-                        this.notify()
-                    }
+                    if (this.sequence === currentSequence)
+                        updateResult('ERROR', err);
                     else
                         logger.info(`Dropping error promise: ${this.name}: ${actual}`);
                 });
-            } else {
-                this.result = { type: 'DONE', value: this.value };
-                this.notify()
-            }
-        }
+            } else
+                updateResult('DONE', value);
+        };
+
+        if (this.dependencies.length === 0)
+            verifyValue(this.value);
         else if (this.dependencies.length === objectSize(this.bindings)) {
             try {
-                const value = this.value.apply(null, this.dependencies.map(n => this.bindings[n]));
-
-                if (value && typeof value.then === "function") {
-                    this.result = { type: 'PENDING', value: value };
-                    this.notify();
-                    value.then(actual => {
-                        if (this.sequence === currentSequence) {
-                            this.result = { type: 'DONE', value: actual };
-                            this.notify()
-                        }
-                        else
-                            logger.info(`Dropping promise: ${this.name}: ${actual}`);
-                    }).catch(err => {
-                        if (this.sequence === currentSequence) {
-                            this.result = { type: 'ERROR', value: err };
-                            this.notify()
-                        }
-                        else
-                            logger.info(`Dropping error promise: ${this.name}: ${actual}`);
-                    });
-                } else {
-                    this.result = { type: 'DONE', value: value };
-                    this.notify()
-                }
+                verifyValue(this.value.apply(null, this.dependencies.map(n => this.bindings[n])));
             } catch (e) {
-                this.result = { type: 'ERROR', value: e };
-                this.notify()
+                updateResult('ERROR', e);
             }
-        } else {
-            this.result = { type: 'PENDING', value: this.value };
-            this.notify()
-        }
+        } else
+            updateResult('PENDING', this.value);
     }
 
     notify() {
@@ -200,11 +181,16 @@ class Variable {
     }
 }
 
-function objectSize(obj) {
-    var size = 0,
-        key;
-    for (key in obj) {
-        if (obj.hasOwnProperty(key)) size++;
+const objectSize = (obj) => {
+    let size = 0;
+    
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key))
+            size += 1;
     }
+
     return size;
 };
+
+const isPromise = (value) =>
+    value && typeof value.then === "function";
