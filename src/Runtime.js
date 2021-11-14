@@ -16,85 +16,139 @@ export class Runtime {
 class Module {
     constructor() {
         this.bindings = {};
-        this.anonymousNameCounter = 0;
+        this.cells = {};
+        this.cellID = 0;
     }
 
-    defineVariable(name, dependencies, value) {
-        if (name === null || name === undefined) {
-            this.anonymousNameCounter += 1;
-            name = `__$${this.anonymousNameCounter}`;
-        }
-
-        const variable = this.bindings[name];
-
-        if (variable === undefined) {
-            const newVariable = new Variable(name, dependencies, value, this);
-            this.bindings[name] = newVariable;
-
-            newVariable.includeObserver(this);
-
-            return newVariable;
-        } else {
-            variable.redefine(dependencies, value);
-            return variable;
-        }
+    newCellID() {
+        const cellID = this.cellID;
+        this.cellID += 1;
+        return cellID;
     }
 
-    variable(name) {
+    createCell(name) {
+        const cellID = this.newCellID();
+        const cell = new Cell(cellID, this);
+
+        this.cells[cellID] = cell;
+        cell.changeName(name);
+
+        cell.includeObserver(this);
+
+        return cell;
+    }
+
+    cellRenamed() {
+        // verify that names are:
+        //   - unique
+        //   - no cycles
+
+        const duplicates = new Set();
+
+        this.bindings = {};
+        for (const cell of Object.values(this.cells))
+            if (cell.name !== undefined)
+                if (this.bindings[cell.name] === undefined)
+                    this.bindings[cell.name] = cell;
+                else
+                    duplicates.add(cell.name);
+
+        for (const cell of Object.values(this.cells))
+            if (cell.name !== undefined && duplicates.has(cell.name))
+                cell.error('Duplicate name');
+            else
+                cell.noError();
+    }
+
+    cellOnID(id) {
+        return this.cells[id];
+    }
+
+    cellOnName(name) {
         return this.bindings[name];
     }
 
     fulfilled(name, value) {
         logger.info(`Fulfilled: ${name}: ${value}`);
-        for (const variable of Object.values(this.bindings)) {
-            if (variable.dependencies.includes(name))
-                variable.fulfilled(name, value);
+        for (const cell of Object.values(this.bindings)) {
+            if (cell.dependencies.includes(name))
+                cell.fulfilled(name, value);
         }
     }
 
     pending(name) {
         logger.info(`Pending: ${name}`);
-        for (const variable of Object.values(this.bindings)) {
-            if (variable.dependencies.includes(name))
-                variable.pending(name);
+        for (const cell of Object.values(this.bindings)) {
+            if (cell.dependencies.includes(name))
+                cell.pending(name);
         }
     }
 
     rejected(name) {
         logger.info(`Error: ${name}`);
-        for (const variable of Object.values(this.bindings)) {
-            if (variable.dependencies.includes(name))
-                variable.rejected(name);
+        for (const cell of Object.values(this.bindings)) {
+            if (cell.dependencies.includes(name))
+                cell.rejected(name);
         }
     }
 }
 
 
-class Variable {
-    constructor(name, dependencies, value, module) {
+class Cell {
+    constructor(id, module) {
         this.module = module;
-        this.name = name;
-        this.dependencies = dependencies;
-        this.value = value;
+        this.id = id;
+        this.dependencies = [];
+        this.value = undefined;
         this.observers = [];
         this.sequence = 0;
+        this.inError = false;
 
         this.updateBindingsAndVerify();
     }
 
-    redefine(dependencies, value) {
+    redefine(name, dependencies, value) {
+        this.changeName(name);
+        this.define(dependencies, value)
+    }
+
+    changeName(name) {
+        if (this.name !== name) {
+            this.name = name;
+            this.module.cellRenamed(this);
+        }
+    }
+
+    define(dependencies, value) {
         this.dependencies = dependencies;
         this.value = value;
 
         this.updateBindingsAndVerify();
+    }
+
+    error(reason) {
+        const wasInError = this.inError;
+
+        this.inError = true;
+        this.result = { type: 'ERROR', value: reason };
+
+        if (!wasInError)
+            this.notify();
+    }
+
+    noError() {
+        if (this.inError) {
+            this.inError = false;
+            this.updateBindingsAndVerify();
+        }
     }
 
     updateBindingsAndVerify() {
         this.bindings = {};
         for (const dependency of this.dependencies) {
-            const variable = this.module.variable(dependency);
-            if (variable !== undefined && variable.result.type === "DONE")
-                this.bindings[dependency] = variable.result.value;
+            const cell = this.module.cellOnName(dependency);
+            if (cell !== undefined && cell.result.type === "DONE")
+                this.bindings[dependency] = cell.result.value;
         }
 
         this.verifyBindings();
@@ -114,42 +168,44 @@ class Variable {
     }
 
     verifyBindings() {
-        this.sequence += 1;
-        const currentSequence = this.sequence;
+        if (!this.inError) {
+            this.sequence += 1;
+            const currentSequence = this.sequence;
 
-        const updateResult = (type, value) => {
-            this.result = { type, value };
-            this.notify()
-        };
+            const updateResult = (type, value) => {
+                this.result = { type, value };
+                this.notify()
+            };
 
-        const verifyValue = (value) => {
-            if (isPromise(value)) {
-                updateResult('PENDING', value);
-                value.then(actual => {
-                    if (this.sequence === currentSequence)
-                        updateResult('DONE', actual);
-                    else
-                        logger.info(`Dropping promise: ${this.name}: ${actual}`);
-                }).catch(err => {
-                    if (this.sequence === currentSequence)
-                        updateResult('ERROR', err);
-                    else
-                        logger.info(`Dropping error promise: ${this.name}: ${actual}`);
-                });
+            const verifyValue = (value) => {
+                if (isPromise(value)) {
+                    updateResult('PENDING', value);
+                    value.then(actual => {
+                        if (this.sequence === currentSequence)
+                            updateResult('DONE', actual);
+                        else
+                            logger.info(`Dropping promise: ${this.name}: ${actual}`);
+                    }).catch(err => {
+                        if (this.sequence === currentSequence)
+                            updateResult('ERROR', err);
+                        else
+                            logger.info(`Dropping error promise: ${this.name}: ${actual}`);
+                    });
+                } else
+                    updateResult('DONE', value);
+            };
+
+            if (this.dependencies.length === 0)
+                verifyValue(this.value);
+            else if (this.dependencies.length === objectSize(this.bindings)) {
+                try {
+                    verifyValue(this.value.apply(null, this.dependencies.map(n => this.bindings[n])));
+                } catch (e) {
+                    updateResult('ERROR', e);
+                }
             } else
-                updateResult('DONE', value);
-        };
-
-        if (this.dependencies.length === 0)
-            verifyValue(this.value);
-        else if (this.dependencies.length === objectSize(this.bindings)) {
-            try {
-                verifyValue(this.value.apply(null, this.dependencies.map(n => this.bindings[n])));
-            } catch (e) {
-                updateResult('ERROR', e);
-            }
-        } else
-            updateResult('PENDING', this.value);
+                updateResult('PENDING', this.value);
+        }
     }
 
     notify() {
@@ -183,7 +239,7 @@ class Variable {
 
 const objectSize = (obj) => {
     let size = 0;
-    
+
     for (const key in obj) {
         if (obj.hasOwnProperty(key))
             size += 1;

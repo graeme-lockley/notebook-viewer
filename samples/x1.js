@@ -4,18 +4,22 @@ const runtime = new Runtime();
 
 const module = await runtime.newModule();
 
-module.defineVariable("a", [], 10);
-module.defineVariable("b", ["a"], (a) => a * 2);
-module.defineVariable("a", [], 20);
+const a = module.createCell("a");
+const b = module.createCell("b");
+const c = module.createCell("c");
 
-module.defineVariable("b", ["a"], (a) => Promise.resolve(a * 3));
+a.define([], 10);
+b.define(["a"], (a) => a * 2);
+a.define([], 20);
 
-module.defineVariable("a", [], 30);
-module.defineVariable("b", ["a", "c"], (a, c) => Promise.resolve(a * c));
+b.define(["a"], (a) => Promise.resolve(a * 3));
 
-module.defineVariable("c", [], 0.5);
-module.defineVariable("c", [], 0.75);
-module.defineVariable("c", [], 0.25);
+a.define([], 30);
+b.define(["a", "c"], (a, c) => Promise.resolve(a * c));
 
-module.defineVariable("b", ["c"], (c) => Promise.resolve(40 * c));
-module.defineVariable("a", [], 40);
+c.define([], 0.5);
+c.define([], 0.75);
+c.define([], 0.25);
+
+b.define(["c"], (c) => Promise.resolve(40 * c));
+a.define([], 40);
