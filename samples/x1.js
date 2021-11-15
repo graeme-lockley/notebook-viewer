@@ -1,4 +1,4 @@
-import { Runtime } from "../src/Runtime.js";
+import { Runtime } from "../src/Runtime.ts";
 
 const runtime = new Runtime();
 

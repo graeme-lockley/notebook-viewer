@@ -7,26 +7,36 @@ const logger = winston.createLogger({
     ]
 });
 
+interface Observer {
+    fulfilled(name: string, value: any): void;
+    pending(name: string): void;
+    rejected(name: string): void;
+};
+
 export class Runtime {
     newModule() {
         return Promise.resolve(new Module())
     }
 }
 
-class Module {
+class Module implements Observer {
+    bindings: { [key: string]: Cell };
+    cells: { [key: number]: Cell };
+    cellID: number;
+
     constructor() {
         this.bindings = {};
         this.cells = {};
         this.cellID = 0;
     }
 
-    newCellID() {
+    private newCellID(): number {
         const cellID = this.cellID;
         this.cellID += 1;
         return cellID;
     }
 
-    createCell(name) {
+    cell(name: string): Cell {
         const cellID = this.newCellID();
         const cell = new Cell(cellID, this);
 
@@ -55,37 +65,38 @@ class Module {
 
         for (const cell of Object.values(this.cells))
             if (cell.name !== undefined && duplicates.has(cell.name))
-                cell.error('Duplicate name');
+                cell.setStatus(CellStatus.DuplicateName, 'Duplicate name');
             else
-                cell.noError();
+                cell.setStatus(CellStatus.Okay);
     }
 
-    cellOnID(id) {
-        return this.cells[id];
+    find(id: number | string): Cell | undefined {
+        return typeof id === "string"
+            ? this.bindings[id]
+            : this.cells[id];
     }
 
-    cellOnName(name) {
-        return this.bindings[name];
-    }
-
-    fulfilled(name, value) {
+    fulfilled(name: string, value: any): void {
         logger.info(`Fulfilled: ${name}: ${value}`);
+
         for (const cell of Object.values(this.bindings)) {
             if (cell.dependencies.includes(name))
                 cell.fulfilled(name, value);
         }
     }
 
-    pending(name) {
+    pending(name: string): void {
         logger.info(`Pending: ${name}`);
+
         for (const cell of Object.values(this.bindings)) {
             if (cell.dependencies.includes(name))
                 cell.pending(name);
         }
     }
 
-    rejected(name) {
+    rejected(name: string): void {
         logger.info(`Error: ${name}`);
+
         for (const cell of Object.values(this.bindings)) {
             if (cell.dependencies.includes(name))
                 cell.rejected(name);
@@ -93,106 +104,138 @@ class Module {
     }
 }
 
+enum ResultType {
+    Error = 'ERROR',
+    Pending = 'PENDING',
+    Done = 'DONE'
+}
+
+interface Result {
+    type: ResultType;
+    value: any;
+}
+
+enum CellStatus {
+    Okay,
+    DuplicateName,
+    DependencyCycle
+}
 
 class Cell {
-    constructor(id, module) {
+    id: number;
+    name: string | undefined;
+    module: Module;
+    dependencies: Array<string>;
+    value: any;
+    observers: Array<Observer>;
+    bindings: { [key: string]: Cell };
+    sequence: number;
+    status: CellStatus;
+    result: Result;
+
+    constructor(id: number, module: Module) {
         this.module = module;
         this.id = id;
         this.dependencies = [];
         this.value = undefined;
         this.observers = [];
+        this.bindings = {};
         this.sequence = 0;
-        this.inError = false;
+        this.status = CellStatus.Okay;
+        this.result = { type: ResultType.Pending, value: undefined };
 
         this.updateBindingsAndVerify();
     }
 
-    redefine(name, dependencies, value) {
-        this.changeName(name);
-        this.define(dependencies, value)
-    }
+    redefine(name: string, dependencies: Array<string>, value: any): void {
+        this.dependencies = dependencies;
+        this.value = value;
 
-    changeName(name) {
         if (this.name !== name) {
             this.name = name;
-            this.module.cellRenamed(this);
+            this.module.cellRenamed();
+        }
+
+        this.updateBindingsAndVerify();
+    }
+
+    changeName(name: string): void {
+        if (this.name !== name) {
+            this.name = name;
+            this.module.cellRenamed();
         }
     }
 
-    define(dependencies, value) {
+    define(dependencies: Array<string>, value: any): void {
         this.dependencies = dependencies;
         this.value = value;
 
         this.updateBindingsAndVerify();
     }
 
-    error(reason) {
-        const wasInError = this.inError;
+    setStatus(status: CellStatus, reason?: string | undefined): void {
+        const oldStatus = this.status;
 
-        this.inError = true;
-        this.result = { type: 'ERROR', value: reason };
+        this.status = status;
+        if (status !== CellStatus.Okay)
+            this.result = { type: ResultType.Error, value: reason };
 
-        if (!wasInError)
+        if (status === CellStatus.Okay && oldStatus !== CellStatus.Okay)
+            this.updateBindingsAndVerify();
+        else if (status !== CellStatus.Okay && oldStatus === CellStatus.Okay)
             this.notify();
     }
 
-    noError() {
-        if (this.inError) {
-            this.inError = false;
-            this.updateBindingsAndVerify();
-        }
-    }
-
-    updateBindingsAndVerify() {
+    private updateBindingsAndVerify() {
         this.bindings = {};
         for (const dependency of this.dependencies) {
-            const cell = this.module.cellOnName(dependency);
-            if (cell !== undefined && cell.result.type === "DONE")
+            const cell = this.module.find(dependency);
+            if (cell !== undefined && cell.result.type === ResultType.Done)
                 this.bindings[dependency] = cell.result.value;
         }
 
         this.verifyBindings();
     }
 
-    includeObserver(observer) {
+    includeObserver(observer: Observer) {
         if (!this.observers.includes(observer)) {
             this.observers.push(observer);
             this.notifyObserver(observer);
         }
     }
 
-    removeObserver(observer) {
+    removeObserver(observer: Observer) {
         const index = this.observers.indexOf(observer);
         if (index > -1)
             this.observers.splice(index, 1);
     }
 
-    verifyBindings() {
-        if (!this.inError) {
+    private verifyBindings() {
+        if (this.status === CellStatus.Okay) {
             this.sequence += 1;
             const currentSequence = this.sequence;
 
-            const updateResult = (type, value) => {
+            const updateResult = (type: ResultType, value: any) => {
                 this.result = { type, value };
                 this.notify()
             };
 
-            const verifyValue = (value) => {
+            const verifyValue = (value: any) => {
                 if (isPromise(value)) {
-                    updateResult('PENDING', value);
-                    value.then(actual => {
+                    updateResult(ResultType.Pending, value);
+                    value.then((actual: any) => {
                         if (this.sequence === currentSequence)
-                            updateResult('DONE', actual);
+                            updateResult(ResultType.Done, actual);
                         else
                             logger.info(`Dropping promise: ${this.name}: ${actual}`);
-                    }).catch(err => {
+                    }).catch((err: any) => {
                         if (this.sequence === currentSequence)
-                            updateResult('ERROR', err);
+                            updateResult(ResultType.Error, err);
                         else
-                            logger.info(`Dropping error promise: ${this.name}: ${actual}`);
+                            logger.info(`Dropping error promise: ${this.name}: ${err}`);
                     });
                 } else
-                    updateResult('DONE', value);
+                    updateResult(ResultType.Done, value);
             };
 
             if (this.dependencies.length === 0)
@@ -201,43 +244,44 @@ class Cell {
                 try {
                     verifyValue(this.value.apply(null, this.dependencies.map(n => this.bindings[n])));
                 } catch (e) {
-                    updateResult('ERROR', e);
+                    updateResult(ResultType.Error, e);
                 }
             } else
-                updateResult('PENDING', this.value);
+                updateResult(ResultType.Pending, this.value);
         }
     }
 
-    notify() {
+    private notify() {
         this.observers.forEach(observer => this.notifyObserver(observer));
     }
 
-    notifyObserver(observer) {
-        if (this.result.type === "DONE")
-            observer.fulfilled(this.name, this.result.value);
-        else if (this.result.type === "PENDING")
-            observer.pending(this.name);
-        else
-            observer.rejected(this.name, this.result.value);
+    private notifyObserver(observer: Observer) {
+        if (this.name !== undefined)
+            if (this.result.type === ResultType.Done)
+                observer.fulfilled(this.name, this.result.value);
+            else if (this.result.type === ResultType.Pending)
+                observer.pending(this.name);
+            else
+                observer.rejected(this.name);
     }
 
-    fulfilled(name, value) {
+    fulfilled(name: string, value: any) {
         this.bindings[name] = value;
         this.verifyBindings();
     }
 
-    pending(name) {
+    pending(name: string) {
         delete this.bindings[name];
         this.verifyBindings();
     }
 
-    rejected(name) {
+    rejected(name: string) {
         delete this.bindings[name];
         this.verifyBindings();
     }
 }
 
-const objectSize = (obj) => {
+const objectSize = (obj: any) => {
     let size = 0;
 
     for (const key in obj) {
@@ -248,5 +292,5 @@ const objectSize = (obj) => {
     return size;
 };
 
-const isPromise = (value) =>
+const isPromise = (value: any) =>
     value && typeof value.then === "function";
