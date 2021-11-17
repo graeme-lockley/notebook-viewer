@@ -53,21 +53,63 @@ class Module implements Observer {
         //   - unique
         //   - no cycles
 
-        const duplicates = new Set();
+        const duplicates = new Set<string>();
+        const dependencies = new Map<string, Set<string>>();
 
         this.bindings = {};
+
         for (const cell of Object.values(this.cells))
             if (cell.name !== undefined)
-                if (this.bindings[cell.name] === undefined)
+                if (this.bindings[cell.name] === undefined) {
                     this.bindings[cell.name] = cell;
+                    dependencies.set(cell.name, new Set(cell.dependencies));
+                }
                 else
                     duplicates.add(cell.name);
 
-        for (const cell of Object.values(this.cells))
-            if (cell.name !== undefined && duplicates.has(cell.name))
-                cell.setStatus(CellStatus.DuplicateName, 'Duplicate name');
-            else
+        let anyChanges = true;
+        while (anyChanges) {
+            anyChanges = false;
+
+            for (const [key, value] of dependencies.entries()) {
+                let result = value;
+
+                for (const e of value) {
+                    const newDependencies : Set<string> = dependencies.get(e);
+
+                    if (newDependencies !== undefined) 
+                        result = union(result, newDependencies);
+                }
+
+                if (result.size !== value.size) {
+                    anyChanges = true;
+                    dependencies.set(key, result);
+                }
+            }
+        }
+
+        // logger.info("Dependencies:");
+        // for (const [key, value] of dependencies.entries()) {
+        //     logger.info(`  ${key}: ${[...value]}`);
+        // }        
+
+        for (const cell of Object.values(this.cells)) {
+            const name = cell.name;
+
+            if (name === undefined) 
                 cell.setStatus(CellStatus.Okay);
+            else if (duplicates.has(name))
+                cell.setStatus(CellStatus.DuplicateName, 'Duplicate name');
+            else 
+            {
+                const deps = dependencies.get(name);
+                
+                if (deps !== undefined && deps.has(name))
+                    cell.setStatus(CellStatus.DependencyCycle, 'Dependency cycle');
+                else
+                    cell.setStatus(CellStatus.Okay);
+            }
+        }
     }
 
     find(id: number | string): Cell | undefined {
@@ -169,6 +211,7 @@ class Cell {
     define(dependencies: Array<string>, value: any): void {
         this.dependencies = dependencies;
         this.value = value;
+        this.module.cellRenamed();
 
         this.updateBindingsAndVerify();
     }
@@ -294,3 +337,12 @@ const objectSize = (obj: any) => {
 
 const isPromise = (value: any) =>
     value && typeof value.then === "function";
+
+const union = <A>(setA : Set<A>, setB : Set<A>): Set<A> => {
+    const _union = new Set<A>(setA)
+
+    for (const elem of setB) 
+        _union.add(elem)
+
+    return _union
+}

@@ -60,7 +60,7 @@ test("duplicate bindings will place all dependent values into error state", asyn
     const a2 = module.cell("a2")
     const b = module.cell("b")
     const c = module.cell("c")
-    const d = module.cell("d6ty776")
+    const d = module.cell("d")
 
     a1.define([], 1);
     a2.define([], 2);
@@ -102,6 +102,38 @@ test("duplicate bindings will place all dependent values into error state", asyn
     expect(b.result.value).toEqual(8);
     expect(c.result.value).toEqual(3);
     expect(d.result.value).toEqual(24);
+});
+
+test("cycle bindings will report error", async () => {
+    const runtime = new Runtime();
+
+    const module = await runtime.newModule();
+
+    const a = module.cell("a")
+    const b = module.cell("b")
+    const c = module.cell("c")
+    const d = module.cell("d")
+    const e = module.cell("e")
+
+    a.define([], 1);
+    b.define(["a"], (a) => a + 1);
+    c.define(["b"], (b) => b + 1);
+    d.define(["c"], (c) => c + 1);
+    e.define([], 10);
+
+    expect(a.result.value).toEqual(1);
+    expect(b.result.value).toEqual(2);
+    expect(c.result.value).toEqual(3);
+    expect(d.result.value).toEqual(4);
+    expect(e.result.value).toEqual(10);
+    
+    a.define(["c"], (c) => c + 1);
+    
+    expect(a.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });
+    expect(b.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });
+    expect(c.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });
+    expect(d.result.type).toEqual('PENDING');
+    expect(e.result.value).toEqual(10);
 });
 
 const objectSize = (obj) => {
