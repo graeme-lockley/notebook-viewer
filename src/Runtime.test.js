@@ -6,7 +6,7 @@ test('construct a module', () => {
     expect(runtime).toBeInstanceOf(Runtime);
 });
 
-test('constant variable updates value', () => {
+test('constant cell updates value', () => {
     const runtime = new Runtime();
 
     const module = runtime.newModule();
@@ -24,7 +24,7 @@ test('constant variable updates value', () => {
     expect(module.find("b").result).toEqual({ type: "DONE", value: 20 });
 });
 
-test('constant variable updates value on change', async () => {
+test('constant cell updates value on change', async () => {
     const runtime = new Runtime();
 
     const module = runtime.newModule();
@@ -51,7 +51,7 @@ test('constant variable updates value on change', async () => {
     expect(module.find("b").result.value).toEqual(90);
 });
 
-test("duplicate bindings will place all dependent values into error state", () => {
+test("duplicate bindings will place all dependent cells into error state", () => {
     const runtime = new Runtime();
 
     const module = runtime.newModule();
@@ -71,7 +71,7 @@ test("duplicate bindings will place all dependent values into error state", () =
 
     expect(a1.result.value).toEqual(1);
     expect(a2.result.value).toEqual(2);
-    expect(b.result.type).toEqual('PENDING');
+    expect(b.result.type).toEqual('ERROR');
     expect(c.result.value).toEqual(3);
     expect(d.result.type).toEqual('PENDING');
 
@@ -136,18 +136,7 @@ test("cycle bindings will report error", () => {
     expect(e.result.value).toEqual(10);
 });
 
-const objectSize = (obj) => {
-    let size = 0;
-
-    for (const key in obj) {
-        if (obj.hasOwnProperty(key))
-            size += 1;
-    }
-
-    return size;
-};
-
-test("blind objects observers are called", () => {
+test("blind call's observers are called", () => {
     const runtime = new Runtime();
     const module = runtime.newModule();
 
@@ -166,7 +155,7 @@ test("blind objects observers are called", () => {
     expect(c2.result.value).toEqual(99);
 });
 
-test("when an object name changes all dependent values change", async () => {
+test("when a cell name changes all dependent values change", () => {
     const runtime = new Runtime();
     const module = runtime.newModule();
 
@@ -181,5 +170,27 @@ test("when an object name changes all dependent values change", async () => {
 
     a.changeName("ap");
     expect(a.result.value).toEqual(1);
-    expect(b.result.type).toEqual('PENDING');
+    expect(b.result.type).toEqual('ERROR');
 });
+
+test("when a cell is dependent on an unknown cell then place cell in error state", () => {
+    const runtime = new Runtime();
+    const module = runtime.newModule();
+
+    const a = module.cell('a');
+
+    a.define(["x"], (x) => x + 1);
+
+    expect(a.result).toEqual({ type: "ERROR", value: 'Undefined name: x' });
+})
+
+const objectSize = (obj) => {
+    let size = 0;
+
+    for (const key in obj) {
+        if (obj.hasOwnProperty(key))
+            size += 1;
+    }
+
+    return size;
+};

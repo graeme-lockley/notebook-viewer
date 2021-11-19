@@ -22,7 +22,8 @@ export class Runtime {
 enum CellStatus {
     Okay,
     DuplicateName,
-    DependencyCycle
+    DependencyCycle,
+    UndefinedName
 }
 
 class Module implements Observer {
@@ -256,8 +257,10 @@ class Cell {
 
     updateBindingsAndVerify() {
         this.bindings = {};
+        
         for (const dependency of this.dependencies) {
             const cell = this.module.find(dependency);
+
             if (cell !== undefined && cell.result.type === ResultType.Done)
                 this.bindings[dependency] = cell.result.value;
         }
@@ -314,8 +317,21 @@ class Cell {
                 } catch (e) {
                     updateResult(ResultType.Error, e);
                 }
-            } else
-                updateResult(ResultType.Pending, this.value);
+            } else {
+                const unknownNames = [];
+
+                for (const dependency of this.dependencies) {
+                    const cell = this.module.find(dependency);
+        
+                    if (cell === undefined)
+                        unknownNames.push(dependency)
+                }
+        
+                if (unknownNames.length === 0)
+                    updateResult(ResultType.Pending, this.value);
+                else
+                    updateResult(ResultType.Error, `Undefined name: ${unknownNames.join(", ")}`);
+            }
         }
     }
 
