@@ -5,6 +5,8 @@ import { CodeMirror } from "./components/CodeMirror";
 import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
 import { NotebookEntryType_HTML, NotebookEntryType_MARKDOWN, NotebookEntryType_JAVASCRIPT, NotebookEntryType_TEX } from "./components/NotebookEntryType";
 import { Library } from "@observablehq/stdlib";
+import { Runtime } from "./Runtime";
+import { parseCell } from "@observablehq/parser/src/parse.js"
 
 const library = new Library()
 
@@ -58,6 +60,29 @@ class EntryResults extends React.Component {
   }
 }
 
+const cellObserver = (stuff) => ({
+  fulfilled: (cell, value) => {
+    stuff.setState((state) => {
+      if (value instanceof Node)
+        return { html: { status: 'OK', stuff: value } };
+      else
+        return { html: { status: 'OK', text: value } };
+    });
+  },
+
+  pending: () => {
+    stuff.setState(() => ({
+      html: { status: 'OK', text: '' }
+    }));
+  },
+
+  rejected: (cell, error) => {
+    stuff.setState((state) => ({
+      html: { status: 'ERROR', text: error === undefined ? 'Error' : error }
+    }));
+  }
+});
+
 class NotebookEntry extends React.Component {
   constructor(props) {
     super(props);
@@ -80,6 +105,8 @@ class NotebookEntry extends React.Component {
     this.focusOn = this.focusOn.bind(this);
     this.focusOff = this.focusOff.bind(this);
     this.changeText = this.changeText.bind(this);
+
+    valueChanged(props.value.type, props.value.text, props.cell);
   }
 
   attemptToggleChevron() {
@@ -99,7 +126,12 @@ class NotebookEntry extends React.Component {
   }
 
   componentDidMount() {
-    this.refreshHTML();
+    this.props.cell.define([], "");
+    this.props.cell.includeObserver(cellObserver(this));
+  }
+
+  componentWillUnmount() {
+    this.props.cell.remove();
   }
 
   focusOn() {
@@ -111,39 +143,16 @@ class NotebookEntry extends React.Component {
   }
 
   changeText(text) {
-    this.setState(() => ({ text }));
-    this.refreshHTML();
+    this.setState((state) => {
+      valueChanged(state.type, text, this.props.cell);
+      return { value: text };
+    });
   }
 
   changeEntryType(entryType) {
-    this.setState(() => ({ type: entryType }));
-    this.refreshHTML();
-  }
-
-  refreshHTML() {
-    const me = this;
-
-    me.setState(state => {
-      const type = state.type;
-
-      if (type === NotebookEntryType_HTML)
-        return { html: { status: 'OK', text: this.state.text } };
-      else if (type === NotebookEntryType_MARKDOWN) {
-        library.md().then(r => {
-          const result = r([state.text]);
-          me.setState({ html: { status: 'OK', stuff: result } });
-        });
-
-        return {};
-      }
-      else {
-        try {
-          // eslint-disable-next-line
-          return { html: { status: 'OK', text: eval(this.state.text) } };
-        } catch (e) {
-          return { html: { status: 'ERROR', text: e.message } };
-        }
-      }
+    this.setState((state) => {
+      valueChanged(entryType, state.text, this.props.cell);
+      return { type: entryType };
     });
   }
 
@@ -216,10 +225,52 @@ class NotebookEntry extends React.Component {
   }
 }
 
+const valueChanged = (type, text, cell) => {
+  renderValue(type, text)
+    .then(value => {
+      cell.define([], value);
+    })
+    .catch(error => {
+      cell.define([], Promise.reject(error));
+    });
+}
+
+const renderValue = (type, text) => {
+  switch (type) {
+    case NotebookEntryType_HTML:
+      return Promise.resolve(text);
+
+    case NotebookEntryType_MARKDOWN:
+      return library.md().then(r => r([text]));
+
+    case NotebookEntryType_JAVASCRIPT:
+      try {
+        const ast = parseCell(text);
+        console.log("AST: ", ast);
+
+        // eslint-disable-next-line
+        const result = eval(text);
+
+        return Promise.resolve(result);
+      } catch (e) {
+        return Promise.reject(e.message);
+      }
+      
+    default:
+      return Promise.reject(`to do: ${type}: ${text}`);
+  }
+}
+
 function App() {
+  const runtime = new Runtime();
+
+  const module = runtime.newModule();
+
   const notebookEntries = notebook.map((entry) =>
-    <NotebookEntry key={entry.id} value={entry} />
+    <NotebookEntry key={entry.id} value={entry} cell={module.cell()} />
   );
+
+  console.log(module);
 
   return (
     <div className="Notebook">

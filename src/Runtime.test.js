@@ -146,3 +146,23 @@ const objectSize = (obj) => {
 
     return size;
 };
+
+test("blind objects observers are called", async () => {
+    const runtime = new Runtime();
+
+    const module = await runtime.newModule();
+
+    const a = module.cell('a');
+    const c1 = module.cell();
+    const c2 = module.cell();
+
+    a.define([], 1);
+    c1.define(["a"], (a) => a + 1);
+    c2.define([], 99);
+
+    expect(a.result.value).toEqual(1);
+    expect(c1.result.type).toEqual('DONE');
+    expect(c1.result.value).toEqual(2);
+    expect(c2.result.type).toEqual('DONE');
+    expect(c2.result.value).toEqual(99);
+});
