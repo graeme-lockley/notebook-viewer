@@ -73,8 +73,8 @@ class EntryResults extends React.Component {
 }
 
 const cellObserver = (stuff) => ({
-  fulfilled: (cell, value) => {
-    stuff.setState((state) => {
+  fulfilled: (_, value) => {
+    stuff.setState(() => {
       if (value instanceof Node)
         return { html: { status: 'OK', stuff: value } };
       else
@@ -88,8 +88,8 @@ const cellObserver = (stuff) => ({
     }));
   },
 
-  rejected: (cell, error) => {
-    stuff.setState((state) => ({
+  rejected: (_, error) => {
+    stuff.setState(() => ({
       html: { status: 'ERROR', text: error === undefined ? 'Error' : error }
     }));
   }
