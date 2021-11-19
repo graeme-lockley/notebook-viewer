@@ -145,7 +145,7 @@ class NotebookEntry extends React.Component {
   changeText(text) {
     this.setState((state) => {
       valueChanged(state.type, text, this.props.cell);
-      return { value: text };
+      return { text };
     });
   }
 
@@ -227,8 +227,8 @@ class NotebookEntry extends React.Component {
 
 const valueChanged = (type, text, cell) => {
   renderValue(type, text)
-    .then(value => {
-      cell.define([], value);
+    .then(([name, deps, value]) => {
+      cell.redefine(name, deps, value);
     })
     .catch(error => {
       cell.define([], Promise.reject(error));
@@ -238,24 +238,31 @@ const valueChanged = (type, text, cell) => {
 const renderValue = (type, text) => {
   switch (type) {
     case NotebookEntryType_HTML:
-      return Promise.resolve(text);
+      return Promise.resolve([undefined, [], text]);
 
     case NotebookEntryType_MARKDOWN:
-      return library.md().then(r => r([text]));
+      return library.md().then(r => [undefined, [], r([text])]);
 
     case NotebookEntryType_JAVASCRIPT:
       try {
         const ast = parseCell(text);
+
         console.log("AST: ", ast);
 
-        // eslint-disable-next-line
-        const result = eval(text);
+        const name = ast.id !== null && ast.id.type === "Identifier" ? ast.id.name : undefined;
+        const dependencies = ast.references.map((dep) => dep.name);
+        const body = text.slice(ast.body.start, ast.body.end);
 
-        return Promise.resolve(result);
+        const fullBody = dependencies.length === 0 ? body : `(${dependencies.join(", ")}) => ${body}`;
+        
+        // eslint-disable-next-line
+        const result = eval(fullBody);
+
+        return Promise.resolve([name, dependencies, result]);
       } catch (e) {
         return Promise.reject(e.message);
       }
-      
+
     default:
       return Promise.reject(`to do: ${type}: ${text}`);
   }
