@@ -28,7 +28,19 @@ const notebook = [
     type: NotebookEntryType_JAVASCRIPT,
     text: "{\n  const xx = [1, 2, 3, 4];\n  xx.map((x) => x + 1);\n}",
     pinned: false
-  }
+  },
+  {
+    id: 4,
+    type: NotebookEntryType_JAVASCRIPT,
+    text: "width = 10",
+    pinned: true
+  },
+  {
+    id: 5,
+    type: NotebookEntryType_JAVASCRIPT,
+    text: "range = width + 1",
+    pinned: true
+  },
 ];
 
 class EntryResults extends React.Component {
