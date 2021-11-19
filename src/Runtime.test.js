@@ -6,10 +6,10 @@ test('construct a module', () => {
     expect(runtime).toBeInstanceOf(Runtime);
 });
 
-test('constant variable updates value', async () => {
+test('constant variable updates value', () => {
     const runtime = new Runtime();
 
-    const module = await runtime.newModule();
+    const module = runtime.newModule();
 
     const a = module.cell("a")
     const b = module.cell("b")
@@ -27,7 +27,7 @@ test('constant variable updates value', async () => {
 test('constant variable updates value on change', async () => {
     const runtime = new Runtime();
 
-    const module = await runtime.newModule();
+    const module = runtime.newModule();
 
     const a = module.cell("a")
     const b = module.cell("b")
@@ -51,10 +51,10 @@ test('constant variable updates value on change', async () => {
     expect(module.find("b").result.value).toEqual(90);
 });
 
-test("duplicate bindings will place all dependent values into error state", async () => {
+test("duplicate bindings will place all dependent values into error state", () => {
     const runtime = new Runtime();
 
-    const module = await runtime.newModule();
+    const module = runtime.newModule();
 
     const a1 = module.cell("a1")
     const a2 = module.cell("a2")
@@ -104,10 +104,10 @@ test("duplicate bindings will place all dependent values into error state", asyn
     expect(d.result.value).toEqual(24);
 });
 
-test("cycle bindings will report error", async () => {
+test("cycle bindings will report error", () => {
     const runtime = new Runtime();
 
-    const module = await runtime.newModule();
+    const module = runtime.newModule();
 
     const a = module.cell("a")
     const b = module.cell("b")
@@ -147,10 +147,9 @@ const objectSize = (obj) => {
     return size;
 };
 
-test("blind objects observers are called", async () => {
+test("blind objects observers are called", () => {
     const runtime = new Runtime();
-
-    const module = await runtime.newModule();
+    const module = runtime.newModule();
 
     const a = module.cell('a');
     const c1 = module.cell();
@@ -165,4 +164,22 @@ test("blind objects observers are called", async () => {
     expect(c1.result.value).toEqual(2);
     expect(c2.result.type).toEqual('DONE');
     expect(c2.result.value).toEqual(99);
+});
+
+test("when an object name changes all dependent values change", async () => {
+    const runtime = new Runtime();
+    const module = runtime.newModule();
+
+    const a = module.cell('a');
+    const b = module.cell('b');
+
+    a.define([], 1);
+    b.define(["a"], (a) => a + 1);
+
+    expect(a.result.value).toEqual(1);
+    expect(b.result.value).toEqual(2);
+
+    a.changeName("ap");
+    expect(a.result.value).toEqual(1);
+    expect(b.result.type).toEqual('PENDING');
 });

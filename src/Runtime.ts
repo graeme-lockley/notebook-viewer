@@ -122,6 +122,10 @@ class Module implements Observer {
                     cell.setStatus(CellStatus.Okay);
             }
         }
+
+        for (const cell of Object.values(this.cells)) {
+            cell.updateBindingsAndVerify();
+        }
     }
 
     find(id: number | string): Cell | undefined {
@@ -227,8 +231,6 @@ class Cell {
         this.dependencies = dependencies;
         this.value = value;
         this.module.cellRenamed();
-
-        this.updateBindingsAndVerify();
     }
 
     remove(): void {
@@ -252,7 +254,7 @@ class Cell {
             this.notify();
     }
 
-    private updateBindingsAndVerify() {
+    updateBindingsAndVerify() {
         this.bindings = {};
         for (const dependency of this.dependencies) {
             const cell = this.module.find(dependency);
