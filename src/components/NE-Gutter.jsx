@@ -36,15 +36,15 @@ export function GutterEntryType(props) {
 
     switch (props.type) {
         case NotebookEntryType_HTML:
-            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsCodeSlash size="0.7em" />{props.children}</div>;
+            return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsCodeSlash size="0.7em" />{props.children}</div>;
         case NotebookEntryType_JAVASCRIPT:
-            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsBraces size="0.7em" />{props.children}</div>;
+            return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsBraces size="0.7em" />{props.children}</div>;
         case NotebookEntryType_MARKDOWN:
-            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsMarkdown size="0.7em" />{props.children}</div>;
+            return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsMarkdown size="0.7em" />{props.children}</div>;
         case NotebookEntryType_TEX:
-            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsSlashCircle size="0.7em" />{props.children}</div>;
+            return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsSlashCircle size="0.7em" />{props.children}</div>;
         default:
-            return <div className="NE-Gutter-focus" onClick={props.onClick}><BsXLg size="0.7em" />{props.children}</div>;
+            return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsXLg size="0.7em" />{props.children}</div>;
 
     }
 }
