@@ -287,8 +287,10 @@ class Cell {
             const currentSequence = this.sequence;
 
             const updateResult = (type: ResultType, value: any) => {
-                this.result = { type, value };
-                this.notify()
+                if (this.result.type !== type || this.result.value !== value) {
+                    this.result = { type, value };
+                    this.notify()
+                }
             };
 
             const verifyValue = (value: any) => {
