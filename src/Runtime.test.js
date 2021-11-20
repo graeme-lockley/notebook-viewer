@@ -233,6 +233,35 @@ test("when a cell is dormant then it is not calculated and does not react to upd
     expect(c.result.type).toEqual('DORMANT');
 });
 
+test("allow a runtime to have a module that captures builtins", () => {
+    const runtime = new Runtime();
+    const builtins = runtime.newModule();
+
+    let whenInvocationCount = 0;
+
+    const when = builtins.cell("when", CalculationPolicy.Dormant);
+    when.define([], () => {
+        whenInvocationCount += 1;
+        return new Date().getTime();
+    })
+
+    expect(when.policy).toEqual(CalculationPolicy.Dormant);
+
+    runtime.registerBuiltins(builtins);
+
+    expect(whenInvocationCount).toEqual(0);
+
+    const module = runtime.newModule();
+    const a = module.cell("a");
+    a.define(["when"], (when) => when);
+
+    expect(whenInvocationCount).toEqual(1);
+    expect(when.policy).toEqual(CalculationPolicy.Dependent);
+    expect(a.policy).toEqual(CalculationPolicy.Always);
+    expect(when.result.value).toEqual(a.result.value);
+});
+
+
 const objectSize = (obj) => {
     let size = 0;
 

@@ -14,8 +14,14 @@ export interface Observer {
 };
 
 export class Runtime {
+    builtins: Module | undefined;
+
     newModule() {
-        return new Module()
+        return new Module(this)
+    }
+
+    registerBuiltins(builtins: Module | undefined) {
+        this.builtins = builtins;
     }
 }
 
@@ -33,11 +39,13 @@ enum CellStatus {
 }
 
 class Module implements Observer {
+    runtime: Runtime;
     bindings: { [key: string]: Cell };
     cells: { [key: number]: Cell };
     cellID: number;
 
-    constructor() {
+    constructor(runtime: Runtime) {
+        this.runtime = runtime;
         this.bindings = {};
         this.cells = {};
         this.cellID = 0;
@@ -129,43 +137,60 @@ class Module implements Observer {
             }
         }
 
-        for (const cell of Object.values(this.cells)) {
-            cell.updateBindingsAndVerify();
-        }
+        this.resetDependentPolicies();
     }
 
     resetDependentPolicies() {
-        for (const cell of Object.values(this.cells)) {
-            if (cell.policy === CalculationPolicy.Dependent)
-                cell.policy = CalculationPolicy.Dormant;
-        }
+        const resetPolicies = (module: Module | undefined) => {
+            if (module !== undefined) {
+                for (const cell of Object.values(this.cells)) {
+                    if (cell.policy === CalculationPolicy.Dependent)
+                        cell.policy = CalculationPolicy.Dormant;
+                }
 
-        const definedCells = (cellNames: Array<string>): Array<Cell> =>
-            cellNames
-                .map((dep) => this.find(dep))
-                .filter((c) => c !== undefined) as Array<Cell>;
+                const definedCells = (cellNames: Array<string>): Array<Cell> =>
+                    cellNames
+                        .map((dep) => this.find(dep))
+                        .filter((c) => c !== undefined) as Array<Cell>;
 
-        const setDependentPolicies = (cell: Cell): void => {
-            if (cell.policy === CalculationPolicy.Dormant) {
-                cell.policy = CalculationPolicy.Dependent;
-                definedCells(cell.dependencies).forEach(setDependentPolicies);
+                const setDependentPolicies = (cell: Cell): void => {
+                    if (cell.policy === CalculationPolicy.Dormant) {
+                        cell.policy = CalculationPolicy.Dependent;
+                        definedCells(cell.dependencies).forEach(setDependentPolicies);
+                    }
+                }
+
+                for (const cell of Object.values(this.cells)) {
+                    if (cell.policy === CalculationPolicy.Always)
+                        definedCells(cell.dependencies).forEach(setDependentPolicies);
+                }
+            }
+        };
+
+        const updateBindingsAndVerify = (module: Module | undefined) => {
+            if (module !== undefined) {
+                for (const cell of Object.values(module.cells)) {
+                    cell.updateBindingsAndVerify();
+                }
             }
         }
 
-        for (const cell of Object.values(this.cells)) {
-            if (cell.policy === CalculationPolicy.Always)
-                definedCells(cell.dependencies).forEach(setDependentPolicies);
-        }
-
-        for (const cell of Object.values(this.cells)) {
-            cell.updateBindingsAndVerify();
-        }
+        resetPolicies(this.runtime.builtins);
+        resetPolicies(this);
+        updateBindingsAndVerify(this.runtime.builtins);
+        updateBindingsAndVerify(this);
     }
 
     find(id: number | string): Cell | undefined {
-        return typeof id === "string"
+        const result = typeof id === "string"
             ? this.bindings[id]
             : this.cells[id];
+
+        return (result !== undefined)
+            ? result
+            : this.runtime.builtins !== undefined
+                ? this.runtime.builtins.find(id)
+                : undefined;
     }
 
     fulfilled(cell: Cell, value: any): void {
