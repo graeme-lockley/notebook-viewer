@@ -26,7 +26,7 @@ const notebook = [
   {
     id: 3,
     type: NotebookEntryType_JAVASCRIPT,
-    text: "{\n  const xx = [1, 2, 3, 4];\n  xx.map((x) => x + 1);\n}",
+    text: "{\n  const xx = [1, 2, 3, 4];\n  return xx.map((x) => x + 1);\n}",
     pinned: false
   },
   {
@@ -262,10 +262,10 @@ const renderValue = (type, text) => {
         console.log("AST: ", ast);
 
         const name = ast.id !== null && ast.id.type === "Identifier" ? ast.id.name : undefined;
-        const dependencies = ast.references.map((dep) => dep.name);
+        const dependencies = [...new Set(ast.references.map((dep) => dep.name))];
         const body = text.slice(ast.body.start, ast.body.end);
 
-        const fullBody = dependencies.length === 0 ? body : `(${dependencies.join(", ")}) => ${body}`;
+        const fullBody = `(${dependencies.join(", ")}) => ${body}`;
         
         // eslint-disable-next-line
         const result = eval(fullBody);

@@ -311,7 +311,7 @@ class Cell {
                     updateResult(ResultType.Done, value);
             };
 
-            if (this.dependencies.length === 0)
+            if (this.dependencies.length === 0 && typeof this.value !== "function")
                 verifyValue(this.value);
             else if (this.dependencies.length === objectSize(this.bindings)) {
                 try {
