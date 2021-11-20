@@ -266,7 +266,7 @@ const renderValue = (type, text) => {
         const body = text.slice(ast.body.start, ast.body.end);
 
         const fullBody = `(${dependencies.join(", ")}) => ${body}`;
-        
+
         // eslint-disable-next-line
         const result = eval(fullBody);
 

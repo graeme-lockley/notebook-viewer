@@ -126,9 +126,9 @@ test("cycle bindings will report error", () => {
     expect(c.result.value).toEqual(3);
     expect(d.result.value).toEqual(4);
     expect(e.result.value).toEqual(10);
-    
+
     a.define(["c"], (c) => c + 1);
-    
+
     expect(a.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });
     expect(b.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });
     expect(c.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });

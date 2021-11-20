@@ -90,7 +90,7 @@ class Module implements Observer {
                 value.forEach((e) => {
                     const newDependencies = dependencies.get(e);
 
-                    if (newDependencies !== undefined) 
+                    if (newDependencies !== undefined)
                         result = union(result, newDependencies);
                 })
 
@@ -109,12 +109,11 @@ class Module implements Observer {
         for (const cell of Object.values(this.cells)) {
             const name = cell.name;
 
-            if (name === undefined) 
+            if (name === undefined)
                 cell.setStatus(CellStatus.Okay);
             else if (duplicates.has(name))
                 cell.setStatus(CellStatus.DuplicateName, 'Duplicate name');
-            else 
-            {
+            else {
                 const deps = dependencies.get(name);
 
                 if (deps !== undefined && deps.has(name))
@@ -143,7 +142,7 @@ class Module implements Observer {
         if (name !== undefined)
             for (const dependentCell of Object.values(this.bindings)) {
                 if (dependentCell.dependencies.includes(name))
-                dependentCell.fulfilled(cell, value);
+                    dependentCell.fulfilled(cell, value);
             }
     }
 
@@ -257,7 +256,7 @@ class Cell {
 
     updateBindingsAndVerify() {
         this.bindings = {};
-        
+
         for (const dependency of this.dependencies) {
             const cell = this.module.find(dependency);
 
@@ -324,11 +323,11 @@ class Cell {
 
                 for (const dependency of this.dependencies) {
                     const cell = this.module.find(dependency);
-        
+
                     if (cell === undefined)
                         unknownNames.push(dependency)
                 }
-        
+
                 if (unknownNames.length === 0)
                     updateResult(ResultType.Pending, this.value);
                 else
@@ -349,7 +348,7 @@ class Cell {
                 observer.pending(this);
             else
                 observer.rejected(this, this.result.value);
-        } catch(e) {
+        } catch (e) {
             logger.error(`notifyObserver: Error: ${this.name}: ${observer}: ${e}`);
         }
     }
@@ -384,7 +383,7 @@ const objectSize = (obj: any) => {
 const isPromise = (value: any) =>
     value && typeof value.then === "function";
 
-const union = <A>(setA : Set<A>, setB : Set<A>): Set<A> => {
+const union = <A>(setA: Set<A>, setB: Set<A>): Set<A> => {
     const _union = new Set<A>(setA)
 
     setB.forEach((elem) => {
