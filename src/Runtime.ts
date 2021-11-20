@@ -19,6 +19,12 @@ export class Runtime {
     }
 }
 
+export enum CalculationPolicy {
+    Dormant,
+    Dependent,
+    Always
+}
+
 enum CellStatus {
     Okay,
     DuplicateName,
@@ -43,9 +49,9 @@ class Module implements Observer {
         return cellID;
     }
 
-    cell(name?: string | undefined): Cell {
+    cell(name?: string | undefined, policy?: CalculationPolicy): Cell {
         const cellID = this.newCellID();
-        const cell = new Cell(cellID, this);
+        const cell = new Cell(cellID, this, policy);
 
         this.cells[cellID] = cell;
         if (name !== undefined)
@@ -128,6 +134,34 @@ class Module implements Observer {
         }
     }
 
+    resetDependentPolicies() {
+        for (const cell of Object.values(this.cells)) {
+            if (cell.policy === CalculationPolicy.Dependent)
+                cell.policy = CalculationPolicy.Dormant;
+        }
+
+        const definedCells = (cellNames: Array<string>): Array<Cell> =>
+            cellNames
+                .map((dep) => this.find(dep))
+                .filter((c) => c !== undefined) as Array<Cell>;
+
+        const setDependentPolicies = (cell: Cell): void => {
+            if (cell.policy === CalculationPolicy.Dormant) {
+                cell.policy = CalculationPolicy.Dependent;
+                definedCells(cell.dependencies).forEach(setDependentPolicies);
+            }
+        }
+
+        for (const cell of Object.values(this.cells)) {
+            if (cell.policy === CalculationPolicy.Always)
+                definedCells(cell.dependencies).forEach(setDependentPolicies);
+        }
+
+        for (const cell of Object.values(this.cells)) {
+            cell.updateBindingsAndVerify();
+        }
+    }
+
     find(id: number | string): Cell | undefined {
         return typeof id === "string"
             ? this.bindings[id]
@@ -173,6 +207,7 @@ class Module implements Observer {
 
 enum ResultType {
     Error = 'ERROR',
+    Dormant = 'DORMANT',
     Pending = 'PENDING',
     Done = 'DONE'
 }
@@ -192,9 +227,10 @@ class Cell {
     bindings: { [key: string]: Cell };
     sequence: number;
     status: CellStatus;
+    policy: CalculationPolicy;
     result: Result;
 
-    constructor(id: number, module: Module) {
+    constructor(id: number, module: Module, policy?: CalculationPolicy) {
         this.module = module;
         this.id = id;
         this.dependencies = [];
@@ -203,6 +239,7 @@ class Cell {
         this.bindings = {};
         this.sequence = 0;
         this.status = CellStatus.Okay;
+        this.policy = policy === undefined ? CalculationPolicy.Always : policy;
         this.result = { type: ResultType.Pending, value: undefined };
 
         this.updateBindingsAndVerify();
@@ -252,6 +289,13 @@ class Cell {
             this.updateBindingsAndVerify();
         else if (status !== CellStatus.Okay && oldStatus === CellStatus.Okay)
             this.notify();
+    }
+
+    setPolicy(policy: CalculationPolicy): void {
+        if (this.policy !== policy) {
+            this.policy = policy;
+            this.module.resetDependentPolicies();
+        }
     }
 
     updateBindingsAndVerify() {
@@ -310,7 +354,9 @@ class Cell {
                     updateResult(ResultType.Done, value);
             };
 
-            if (this.dependencies.length === 0 && typeof this.value !== "function")
+            if (this.policy === CalculationPolicy.Dormant)
+                updateResult(ResultType.Dormant, undefined);
+            else if (this.dependencies.length === 0 && typeof this.value !== "function")
                 verifyValue(this.value);
             else if (this.dependencies.length === objectSize(this.bindings)) {
                 try {

@@ -1,4 +1,4 @@
-import { Runtime } from "./Runtime";
+import { CalculationPolicy, Runtime } from "./Runtime";
 
 test('construct a module', () => {
     const runtime = new Runtime();
@@ -182,7 +182,46 @@ test("when a cell is dependent on an unknown cell then place cell in error state
     a.define(["x"], (x) => x + 1);
 
     expect(a.result).toEqual({ type: "ERROR", value: 'Undefined name: x' });
-})
+});
+
+test("when a cell is dormant then it is not calculated and does not react to updates", () => {
+    const runtime = new Runtime();
+    const module = runtime.newModule();
+
+    const a = module.cell('a', CalculationPolicy.Dormant);
+    const b = module.cell('b', CalculationPolicy.Dormant);
+    const c = module.cell('c', CalculationPolicy.Dormant);
+
+    a.define([], 1);
+    b.define(["a"], (a) => a + 1);
+    c.define(["a"], (a) => a + 1);
+
+    expect(a.policy).toEqual(CalculationPolicy.Dormant);
+    expect(a.result.type).toEqual('DORMANT');
+    expect(b.result.type).toEqual('DORMANT');
+    expect(c.result.type).toEqual('DORMANT');
+
+    a.setPolicy(CalculationPolicy.Always);
+
+    expect(a.result.type).toEqual('DONE');
+    expect(a.result.value).toEqual(1);
+    expect(b.result.type).toEqual('DORMANT');
+    expect(c.result.type).toEqual('DORMANT');
+
+    a.setPolicy(CalculationPolicy.Dormant);
+
+    expect(a.result.type).toEqual('DORMANT');
+    expect(b.result.type).toEqual('DORMANT');
+    expect(c.result.type).toEqual('DORMANT');
+
+    b.setPolicy(CalculationPolicy.Always);
+    expect(a.policy).toEqual(CalculationPolicy.Dependent);
+    expect(a.result.type).toEqual('DONE');
+    expect(a.result.value).toEqual(1);
+    expect(b.result.type).toEqual('DONE');
+    expect(b.result.value).toEqual(2);
+    expect(c.result.type).toEqual('DORMANT');
+});
 
 const objectSize = (obj) => {
     let size = 0;
