@@ -136,6 +136,16 @@ test("cycle bindings will report error", () => {
     expect(e.result.value).toEqual(10);
 });
 
+test("recursive cell will report error", () => {
+    const runtime = new Runtime();
+    const module = runtime.newModule();
+
+    const a = module.cell('a');
+    
+    a.define(["a"], (a) => a + 1);
+    expect(a.result).toEqual({ type: "ERROR", value: 'Dependency cycle' });
+});
+
 test("blind call's observers are called", () => {
     const runtime = new Runtime();
     const module = runtime.newModule();
