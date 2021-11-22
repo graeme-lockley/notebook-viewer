@@ -1,11 +1,13 @@
 import winston from "winston";
 
 const logger = winston.createLogger({
-    level: 'info', //'info' | 'error',
+    level: 'error', //'info' | 'error',
     transports: [
         new winston.transports.Console(),
     ]
 });
+
+const ITERATION_SLEEP = 100;
 
 export interface Observer {
     fulfilled(cell: Cell, value: any): void;
@@ -16,14 +18,60 @@ export interface Observer {
 export class Runtime {
     builtins: Module | undefined;
 
+    modules: Array<Module>;
+    observer: Observer;
+
+    constructor() {
+        this.modules = [];
+        this.observer = runtimeObserver(this);
+    }
+
     newModule() {
-        return new Module(this)
+        const module = new Module(this);
+        this.modules.push(module);
+
+        return module;
     }
 
     registerBuiltins(builtins: Module | undefined) {
         this.builtins = builtins;
     }
 }
+
+const updateModuleDependencies = (module: Module, name: string) => {
+    for (const dependentCell of Object.values(module.cells)) {
+        if (dependentCell.dependencies.includes(name))
+            dependentCell.updateBindingsAndVerify();
+    }
+}
+
+const updateDependencies = (runtime: Runtime, cell: Cell) => {
+    const name = cell.name;
+
+    if (name !== undefined) {
+        if (cell.module === runtime.builtins)
+            runtime.modules.forEach(module => {
+                if (!module.has(name))
+                    updateModuleDependencies(module, name);
+            });
+        else
+            updateModuleDependencies(cell.module, name);
+    }
+}
+
+const runtimeObserver = (runtime: Runtime) => ({
+    fulfilled(cell: Cell, value: any): void {
+        updateDependencies(runtime, cell);
+    },
+
+    pending(cell: Cell): void {
+        updateDependencies(runtime, cell);
+    },
+
+    rejected(cell: Cell, value?: any): void {
+        updateDependencies(runtime, cell);
+    }
+});
 
 export enum CalculationPolicy {
     Dormant,
@@ -38,7 +86,7 @@ enum CellStatus {
     UndefinedName
 }
 
-class Module implements Observer {
+class Module {
     runtime: Runtime;
     bindings: { [key: string]: Cell };
     cells: { [key: number]: Cell };
@@ -65,7 +113,7 @@ class Module implements Observer {
         if (name !== undefined)
             cell.changeName(name);
 
-        cell.includeObserver(this);
+        cell.includeObserver(this.runtime.observer);
 
         return cell;
     }
@@ -188,45 +236,17 @@ class Module implements Observer {
 
         return (result !== undefined)
             ? result
-            : this.runtime.builtins !== undefined
+            : this.runtime.builtins !== undefined && this !== this.runtime.builtins
                 ? this.runtime.builtins.find(id)
                 : undefined;
     }
 
-    fulfilled(cell: Cell, value: any): void {
-        const name = cell.name;
+    has(id: number | string): boolean {
+        const result = typeof id === "string"
+            ? this.bindings[id]
+            : this.cells[id];
 
-        logger.info(`Fulfilled: ${name} (${cell.id}): ${value}`);
-
-        if (name !== undefined)
-            for (const dependentCell of Object.values(this.bindings)) {
-                if (dependentCell.dependencies.includes(name))
-                    dependentCell.fulfilled(cell, value);
-            }
-    }
-
-    pending(cell: Cell): void {
-        const name = cell.name;
-
-        logger.info(`Pending: ${name} (${cell.id})`);
-
-        if (name !== undefined)
-            for (const dependentCell of Object.values(this.bindings)) {
-                if (dependentCell.dependencies.includes(name))
-                    dependentCell.pending(cell);
-            }
-    }
-
-    rejected(cell: Cell, value?: any): void {
-        const name = cell.name;
-
-        logger.info(`Error: ${name} (${cell.id}): ${value}`);
-
-        if (name !== undefined)
-            for (const dependentCell of Object.values(this.bindings)) {
-                if (dependentCell.dependencies.includes(name))
-                    dependentCell.rejected(cell, value);
-            }
+        return (result !== undefined);
     }
 }
 
@@ -274,12 +294,10 @@ class Cell {
         this.dependencies = dependencies;
         this.value = value;
 
-        if (this.name !== name) {
+        if (this.name !== name)
             this.name = name;
-            this.module.cellRenamed();
-        }
 
-        this.updateBindingsAndVerify();
+        this.module.cellRenamed();
     }
 
     changeName(name: string): void {
@@ -361,8 +379,33 @@ class Cell {
                 }
             };
 
+            const verifyGeneratorValue = (value: any) => {
+                const nextValue = value.next();
+
+                const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+                const nextValueValue = isPromise(nextValue.value)
+                    ? nextValue.value
+                    : delay(ITERATION_SLEEP).then(_ => Promise.resolve(nextValue.value));
+
+                nextValueValue.then((val: any) => {
+                    if (currentSequence === this.sequence && val !== undefined) {
+                        verifyValue(val);
+                        if (!nextValue.done)
+                            verifyGeneratorValue(value);
+                    }
+                }).catch((err: any) => {
+                    if (this.sequence === currentSequence)
+                        updateResult(ResultType.Error, err);
+                });
+            }
+
             const verifyValue = (value: any) => {
-                if (isPromise(value)) {
+                if (value === undefined)
+                    updateResult(ResultType.Done, value);
+                else if (value.next !== undefined)
+                    verifyGeneratorValue(value,)
+                else if (isPromise(value)) {
                     updateResult(ResultType.Pending, value);
                     value.then((actual: any) => {
                         if (this.sequence === currentSequence)
@@ -422,21 +465,6 @@ class Cell {
         } catch (e) {
             logger.error(`notifyObserver: Error: ${this.name}: ${observer}: ${e}`);
         }
-    }
-
-    fulfilled(cell: Cell, value: any) {
-        this.bindings[cell.name!] = value;
-        this.verifyBindings();
-    }
-
-    pending(cell: Cell) {
-        delete this.bindings[cell.name!];
-        this.verifyBindings();
-    }
-
-    rejected(cell: Cell, value?: any) {
-        delete this.bindings[cell.name!];
-        this.verifyBindings();
     }
 }
 

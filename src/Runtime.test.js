@@ -261,7 +261,6 @@ test("allow a runtime to have a module that captures builtins", () => {
     expect(when.result.value).toEqual(a.result.value);
 });
 
-
 const objectSize = (obj) => {
     let size = 0;
 
