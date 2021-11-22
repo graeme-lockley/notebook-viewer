@@ -151,8 +151,6 @@ class EntryResults extends React.Component {
 
 const cellObserver = (stuff) => ({
     fulfilled: (cell, value) => {
-        console.log("cellObserver.fulfilled: ", cell);
-
         stuff.setState(() => {
             if (value instanceof Node)
                 return { html: { status: 'OK', dom: value } };
@@ -240,7 +238,6 @@ class NotebookEntry extends React.Component {
             valueChanged(state.type, text, this.props.cell);
             return { text };
         });
-        console.log("Module: ", this.props.cell.module);
     }
 
     changeEntryType(entryType) {
@@ -431,8 +428,6 @@ function App() {
     const notebookEntries = notebook.map((entry) =>
         <NotebookEntry key={entry.id} value={entry} cell={module.cell()} />
     );
-
-    console.log(module);
 
     return (
         <div className="Notebook">
