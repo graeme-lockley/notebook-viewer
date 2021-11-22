@@ -27,7 +27,7 @@ const notebook = [
     {
         id: 3,
         type: NotebookEntryType_JAVASCRIPT,
-        text: "html`<p>We can drop in <em>reactive values</em> too like value (${value}), range (${range}) and when (${when}).</p>\n\n<p>We can also embed some reactive equations using value as the exponent ${tex`E = mc^{${value}}`}`",
+        text: "html`<p>We can drop in <em>reactive values</em> too like value (${value}), range (${range}) and when (${when}).</p>\n\n<p>We can also embed some reactive equations (thank you ${tex`\\TeX`}) using value as the exponent ${tex`E = mc^{${value}}`}`",
         pinned: false
     },
     {
