@@ -34,7 +34,7 @@ const notebook = [
         id: 4,
         type: NotebookEntryType_JAVASCRIPT,
         text: "{\n  const inc = (n) => n + 1;\n  const values = [1, 2, 3, 4];\n\n  return values.map(inc);\n}",
-        pinned: false
+        pinned: true
     },
     {
         id: 5,
@@ -64,6 +64,25 @@ const notebook = [
         id: 9,
         type: NotebookEntryType_JAVASCRIPT,
         text: "when = now",
+        pinned: true
+    },
+    {
+        id: 10,
+        type: NotebookEntryType_JAVASCRIPT,
+        text: `{
+    function formatDate(date) {
+        let hours = date.getHours();
+        let minutes = date.getMinutes();
+        let ampm = hours >= 12 ? 'pm' : 'am';
+        hours = hours % 12;
+        hours = hours ? hours : 12; // the hour '0' should be '12'
+        minutes = minutes < 10 ? '0'+minutes : minutes;
+        var strTime = hours + ':' + minutes + ' ' + ampm;
+        return (date.getMonth()+1) + "/" + date.getDate() + "/" + date.getFullYear() + "  " + strTime;
+    }
+
+    return formatDate(new Date(when));
+}`,
         pinned: true
     },
 ];
