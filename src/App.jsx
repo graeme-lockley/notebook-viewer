@@ -596,7 +596,7 @@ function App() {
 
     const builtins = runtime.newModule();
 
-    builtins.cell("FileAttachment", CalculationPolicy.Always).define([], () => library.FileAttachment());
+    builtins.cell("FileAttachment", CalculationPolicy.Dormant).define([], () => library.FileAttachment());
     builtins.cell("Arrow", CalculationPolicy.Dormant).define([], () => library.Arrow());
     builtins.cell("Inputs", CalculationPolicy.Dormant).define([], () => library.Inputs());
     builtins.cell("Mutable", CalculationPolicy.Dormant).define([], () => library.Mutable());
