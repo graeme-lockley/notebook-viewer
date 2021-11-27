@@ -1,5 +1,6 @@
 import React from "react"
-import { BsBraces, BsCodeSlash, BsMarkdown, BsSlashCircle } from "react-icons/bs";
+import { BsArrowDownSquare, BsArrowUpSquare, BsBraces, BsCodeSlash, BsMarkdown, BsSlashCircle, BsThreeDotsVertical, BsTrash } from "react-icons/bs";
+import { CgInsertAfterR, CgInsertBeforeR } from "react-icons/cg";
 import "./App.css";
 import { CodeMirror } from "./components/CodeMirror";
 import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
@@ -174,6 +175,28 @@ const cellObserver = (stuff) => ({
     }
 });
 
+function GutterMenu(props) {
+    const me = props.this;
+    const state = me.state;
+
+    if (!state.focus)
+        return (<Gutter focus={false} />);
+
+    return (
+        <div className="NE-Gutter-focus NE-Pointer" onClick={(e) => me.attemptToggleMenuPopup(e)}><BsThreeDotsVertical size="0.7em" />
+            {state.menuPopup &&
+                <div className="NE-Popup">
+                    <div className="NE-PopupEntry" onClick={me.insertBeforeEntry}><CgInsertAfterR size="0.7em" /> Insert before</div>
+                    <div className="NE-PopupEntry" onClick={me.addAfterEntry}><CgInsertBeforeR size="0.7em" /> Add after</div>
+                    <div className="NE-PopupEntry" onClick={me.moveEntryUp}><BsArrowUpSquare size="0.7em" /> Move up</div>
+                    <div className="NE-PopupEntry" onClick={me.moveEntryDown}><BsArrowDownSquare size="0.7em" /> Move down</div>
+                    <hr />
+                    <div className="NE-PopupEntry" onClick={() => me.deleteEntry()}><BsTrash size="0.7em" /> Delete</div>
+                </div>
+            }
+        </div>);
+}
+
 class NotebookEntry extends React.Component {
     constructor(props) {
         super(props);
@@ -186,16 +209,24 @@ class NotebookEntry extends React.Component {
             pinned: props.value.pinned,
             open: props.value.pinned,
             entryTypePopup: false,
+            menuPopup: false,
             focus: false
         };
 
         this.attemptToggleChevron = this.attemptToggleChevron.bind(this);
         this.attemptTogglePin = this.attemptTogglePin.bind(this);
         this.attemptToggleEntryTypePopup = this.attemptToggleEntryTypePopup.bind(this);
+        this.attemptToggleMenuPopup = this.attemptToggleMenuPopup.bind(this);
         this.setEntryType = this.setEntryType.bind(this);
+        this.insertBeforeEntry = this.insertBeforeEntry.bind(this);
+        this.addAfterEntry = this.addAfterEntry.bind(this);
+        this.moveEntryUp = this.moveEntryUp.bind(this);
+        this.moveEntryDown = this.moveEntryDown.bind(this);
+        this.deleteEntry = this.deleteEntry.bind(this);
         this.focusOn = this.focusOn.bind(this);
         this.focusOff = this.focusOff.bind(this);
         this.changeText = this.changeText.bind(this);
+
 
         valueChanged(props.value.type, props.value.text, props.cell);
     }
@@ -209,11 +240,35 @@ class NotebookEntry extends React.Component {
     }
 
     attemptToggleEntryTypePopup(e) {
-        this.setState(state => ({ entryTypePopup: state.entryTypePopup === false ? true : false }));
+        this.setState(state => ({ entryTypePopup: state.entryTypePopup === false ? true : false, menuPopup: false }));
+    }
+
+    attemptToggleMenuPopup(e) {
+        this.setState(state => ({ menuPopup: state.menuPopup === false ? true : false, entryTypePopup: false}));
     }
 
     setEntryType(et) {
         this.setState(state => ({ type: et, entryTypePopup: undefined }));
+    }
+
+    insertBeforeEntry() {
+        this.props.insertBeforeEntry(this.props.value.id);
+    }
+
+    addAfterEntry() {
+        this.props.addAfterEntry(this.props.value.id);
+    }
+
+    deleteEntry() {
+        this.props.deleteEntry(this.props.value.id);
+    }
+
+    moveEntryUp() {
+        this.props.moveEntryUp(this.props.value.id);
+    }
+
+    moveEntryDown() {
+        this.props.moveEntryDown(this.props.value.id);
     }
 
     componentDidMount() {
@@ -230,7 +285,7 @@ class NotebookEntry extends React.Component {
     }
 
     focusOff() {
-        this.setState(() => ({ focus: false, entryTypePopup: false }));
+        this.setState(state => ({ focus: false, entryTypePopup: false, menuPopup: false, open: state.pinned }));
     }
 
     changeText(text) {
@@ -262,8 +317,7 @@ class NotebookEntry extends React.Component {
                         pinned={this.state.pinned}
                         focus={this.state.focus}
                         onClick={this.attemptToggleChevron} />
-                    <Gutter
-                        focus={this.state.focus} />
+                    <GutterMenu this={this} />
                     <EntryResults
                         result={this.state.html} />
                 </div>
@@ -307,8 +361,7 @@ class NotebookEntry extends React.Component {
                     pinned={this.state.pinned}
                     focus={this.state.focus}
                     onClick={this.attemptToggleChevron} />
-                <Gutter
-                    focus={this.state.focus} />
+                <GutterMenu this={this} />
                 <EntryResults
                     result={this.state.html} />
             </div>
@@ -382,6 +435,156 @@ const renderValue = (type, text) => {
     }
 }
 
+const nextEntry = (id) => {
+    return {
+        id,
+        type: NotebookEntryType_JAVASCRIPT,
+        text: "1 + 2",
+        pinned: true
+    };
+};
+
+class Notebook extends React.Component {
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            entries: props.entries,
+            cells: new Map(),
+            nextId: Math.max(...[0, ...props.entries.map(entry => entry.id)])
+        };
+
+        this.insertBeforeEntry = this.insertBeforeEntry.bind(this);
+        this.addAfterEntry = this.addAfterEntry.bind(this);
+        this.moveEntryUp = this.moveEntryUp.bind(this);
+        this.moveEntryDown = this.moveEntryDown.bind(this);
+        this.deleteEntry = this.deleteEntry.bind(this);
+    }
+
+    cell(id) {
+        if (this.state.cells.has(id))
+            return this.state.cells.get(id)
+        else {
+            const cell = this.props.module.cell();
+            this.state.cells.set(id, cell);
+            return cell;
+        }
+    }
+
+    insertBeforeEntry(id) {
+        this.setState(state => {
+            const entries = [...state.entries];
+
+            let idx = 0;
+            while (true) {
+                if (idx === entries.length) {
+                    entries.push(nextEntry(state.nextId));
+                    return { entries, id: state.nextId + 1 };
+                }
+
+                if (id === entries[idx].id) {
+                    entries.splice(idx, 0, nextEntry(entries));
+                    return { entries };
+                }
+
+                idx += 1;
+            }
+        });
+    }
+
+    addAfterEntry(id) {
+        this.setState(state => {
+            const entries = [...state.entries];
+
+            let idx = 0;
+            while (true) {
+                if (idx === entries.length) {
+                    entries.push(nextEntry(state.nextId));
+                    return { entries, id: state.nextId + 1 };
+                }
+
+                if (id === entries[idx].id) {
+                    entries.splice(idx + 1, 0, nextEntry(entries));
+                    return { entries };
+                }
+
+                idx += 1;
+            }
+        });
+    }
+
+    deleteEntry(id) {
+        this.setState(state => {
+            const entries = [...state.entries];
+
+            const cell = state.cells.get(id);
+            if (cell !== undefined)
+                cell.remove();
+
+            return { entries: entries.filter(entry => entry.id !== id) };
+        });
+    }
+
+    moveEntryUp(id) {
+        this.setState(state => {
+            const entries = [...state.entries];
+
+            let idx = 0;
+            while (true) {
+                if (idx === entries.length) return {};
+
+                if (id === entries[idx].id && idx > 0) {
+                    const entry = entries.splice(idx, 1);
+                    entries.splice(idx - 1, 0, entry[0]);
+                    return { entries };
+                }
+
+                idx += 1;
+            }
+        });
+    }
+
+    moveEntryDown(id) {
+        this.setState(state => {
+            const entries = [...state.entries];
+
+            let idx = 0;
+            while (true) {
+                if (idx === entries.length) return {};
+
+                if (id === entries[idx].id) {
+                    const entry = entries.splice(idx, 1);
+                    entries.splice(idx + 1, 0, entry[0]);
+                    return { entries };
+                }
+
+                idx += 1;
+            }
+        });
+    }
+
+    render() {
+        const notebookEntries = this.state.entries.map((entry) =>
+            <NotebookEntry
+                key={entry.id}
+                value={entry}
+                cell={this.cell(entry.id)}
+                insertBeforeEntry={this.insertBeforeEntry}
+                addAfterEntry={this.addAfterEntry}
+                moveEntryUp={this.moveEntryUp}
+                moveEntryDown={this.moveEntryDown}
+                deleteEntry={this.deleteEntry}
+            />
+        );
+
+        return (
+            <div className="Notebook">
+                {notebookEntries}
+            </div>
+        );
+    }
+}
+
 function* now() {
     while (true) {
         yield Date.now();
@@ -425,15 +628,7 @@ function App() {
 
     window.module = module;
 
-    const notebookEntries = notebook.map((entry) =>
-        <NotebookEntry key={entry.id} value={entry} cell={module.cell()} />
-    );
-
-    return (
-        <div className="Notebook">
-            {notebookEntries}
-        </div>
-    );
+    return <Notebook module={module} entries={notebook} />;
 }
 
 export default App;
