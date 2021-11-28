@@ -4,72 +4,73 @@ import { CgInsertAfterR, CgInsertBeforeR } from "react-icons/cg";
 import "./App.css";
 import { CodeMirror } from "./components/CodeMirror";
 import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
-import { NotebookEntryType_HTML, NotebookEntryType_MARKDOWN, NotebookEntryType_JAVASCRIPT, NotebookEntryType_TEX } from "./components/NotebookEntryType";
 import { FileAttachments, Library } from "@observablehq/stdlib";
 import { CalculationPolicy, Runtime } from "./Runtime";
 import { parseCell } from "@observablehq/parser/src/parse.js"
 import { stringify } from "flatted"
+
+import { EntryType } from "./model/notebook"
 
 const library = new Library()
 
 const notebook = [
     {
         id: 1,
-        type: NotebookEntryType_MARKDOWN,
+        type: EntryType.MARKDOWN,
         text: "## Heading\n\n- Bullet 1,\n- Bullet 2, and\n- Bullet 3",
         pinned: false
     },
     {
         id: 2,
-        type: NotebookEntryType_HTML,
+        type: EntryType.HTML,
         text: "Hello <strong>world</strong>",
         pinned: false
     },
     {
         id: 3,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "html`<p>We can drop in <em>reactive values</em> too like value (${value}), range (${range}) and when (${when}).</p>\n\n<p>We can also embed some reactive equations (thank you ${tex`\\TeX`}) using value as the exponent ${tex`E = mc^{${value}}`}`",
         pinned: false
     },
     {
         id: 4,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "{\n  const inc = (n) => n + 1;\n  const values = [1, 2, 3, 4];\n\n  return values.map(inc);\n}",
         pinned: true
     },
     {
         id: 5,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "width = 10",
         pinned: true
     },
     {
         id: 6,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "range = width + 1",
         pinned: true
     },
     {
         id: 7,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: '/*viewof*/ gain = Inputs.range([0, 11], {value: 2, step: 0.1, label: "Gain"})',
         pinned: true
     },
     {
         id: 8,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "value = Generators.input(gain)",
         pinned: true
     },
     {
         id: 9,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "when = now",
         pinned: true
     },
     {
         id: 10,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: `{
     function formatDate(date) {
         let hours = date.getHours();
@@ -91,31 +92,31 @@ const notebook = [
 // const notebook = [
 //   {
 //     id: 1,
-//     type: NotebookEntryType_MARKDOWN,
+//     type: EntryType.MARKDOWN,
 //     text: "## Heading\n\n- Bullet 1,\n- Bullet 2, and\n- Bullet 3",
 //     pinned: false
 //   },
 //   {
 //     id: 2,
-//     type: NotebookEntryType_HTML,
+//     type: EntryType.HTML,
 //     text: "Hello <strong>world</strong>",
 //     pinned: false
 //   },
 //   {
 //     id: 3,
-//     type: NotebookEntryType_JAVASCRIPT,
+//     type: EntryType.JAVASCRIPT,
 //     text: "{\n  const xx = [1, 2, 3, 4];\n  return xx.map((x) => x + 1);\n}",
 //     pinned: false
 //   },
 //   {
 //     id: 4,
-//     type: NotebookEntryType_JAVASCRIPT,
+//     type: EntryType.JAVASCRIPT,
 //     text: "width = 10",
 //     pinned: true
 //   },
 //   {
 //     id: 5,
-//     type: NotebookEntryType_JAVASCRIPT,
+//     type: EntryType.JAVASCRIPT,
 //     text: "range = width + 1",
 //     pinned: true
 //   },
@@ -244,7 +245,7 @@ class NotebookEntry extends React.Component {
     }
 
     attemptToggleMenuPopup(e) {
-        this.setState(state => ({ menuPopup: state.menuPopup === false ? true : false, entryTypePopup: false}));
+        this.setState(state => ({ menuPopup: state.menuPopup === false ? true : false, entryTypePopup: false }));
     }
 
     setEntryType(et) {
@@ -303,8 +304,8 @@ class NotebookEntry extends React.Component {
     }
 
     calculateMode(type) {
-        return type === NotebookEntryType_HTML ? "htmlmixed"
-            : type === NotebookEntryType_JAVASCRIPT ? "javascript"
+        return type === EntryType.HTML ? "htmlmixed"
+            : type === EntryType.JAVASCRIPT ? "javascript"
                 : "markdown";
     }
 
@@ -332,10 +333,10 @@ class NotebookEntry extends React.Component {
                         onClick={this.attemptToggleEntryTypePopup}>
                         {this.state.entryTypePopup &&
                             <div className="NE-Popup">
-                                <div className={this.state.type === NotebookEntryType_JAVASCRIPT ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(NotebookEntryType_JAVASCRIPT)}><BsBraces size="0.7em" /> JavaScript</div>
-                                <div className={this.state.type === NotebookEntryType_MARKDOWN ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(NotebookEntryType_MARKDOWN)}><BsMarkdown size="0.7em" /> Markdown</div>
-                                <div className={this.state.type === NotebookEntryType_HTML ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(NotebookEntryType_HTML)}><BsCodeSlash size="0.7em" /> HTML</div>
-                                <div className={this.state.type === NotebookEntryType_TEX ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(NotebookEntryType_TEX)}><BsSlashCircle size="0.7em" /> TeX</div>
+                                <div className={this.state.type === EntryType.JAVASCRIPT ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.JAVASCRIPT)}><BsBraces size="0.7em" /> JavaScript</div>
+                                <div className={this.state.type === EntryType.MARKDOWN ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.MARKDOWN)}><BsMarkdown size="0.7em" /> Markdown</div>
+                                <div className={this.state.type === EntryType.HTML ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.HTML)}><BsCodeSlash size="0.7em" /> HTML</div>
+                                <div className={this.state.type === EntryType.TEX ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.TEX)}><BsSlashCircle size="0.7em" /> TeX</div>
                             </div>
                         }
                     </GutterEntryType>
@@ -381,13 +382,13 @@ const valueChanged = (type, text, cell) => {
 
 const renderValue = (type, text) => {
     switch (type) {
-        case NotebookEntryType_HTML:
+        case EntryType.HTML:
             return Promise.resolve([undefined, [], text]);
 
-        case NotebookEntryType_MARKDOWN:
+        case EntryType.MARKDOWN:
             return library.md().then(r => [undefined, [], r([text])]);
 
-        case NotebookEntryType_JAVASCRIPT:
+        case EntryType.JAVASCRIPT:
             try {
                 const ast = parseCell(text);
 
@@ -438,7 +439,7 @@ const renderValue = (type, text) => {
 const nextEntry = (id) => {
     return {
         id,
-        type: NotebookEntryType_JAVASCRIPT,
+        type: EntryType.JAVASCRIPT,
         text: "1 + 2",
         pinned: true
     };
