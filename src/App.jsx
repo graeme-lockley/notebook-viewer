@@ -11,37 +11,9 @@ import { stringify } from "flatted"
 
 import { EntryType, addAfter, deleteEntry, insertBefore, moveEntryDown, moveEntryUp } from "./model/notebook"
 import { notebook } from "./model/initial"
+import { EntryResults } from "./ui/EntryResults"
 
 const library = new Library();
-
-class EntryResults extends React.Component {
-    constructor(props) {
-        super(props);
-
-        this.elementRef = (element, newThis) => {
-            if (element !== null && newThis.props.result.dom !== undefined) {
-                element.childNodes.forEach(child => {
-                    element.removeChild(child);
-                });
-                element.appendChild(newThis.props.result.dom);
-            }
-        };
-    }
-
-    render() {
-        if (this.props.result.dom !== undefined) {
-            return (<div
-                className={`NotebookBody-${this.props.result.status}`}
-                ref={(e) => this.elementRef(e, this)}
-            />);
-        }
-
-        return (<div
-            className={`NotebookBody-${this.props.result.status}`}
-            dangerouslySetInnerHTML={{ __html: this.props.result.text }}
-        />);
-    }
-}
 
 const cellObserver = (stuff) => ({
     fulfilled: (cell, value) => {
