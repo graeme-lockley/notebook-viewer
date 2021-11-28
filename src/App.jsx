@@ -96,10 +96,7 @@ class NotebookEntry extends React.Component {
 
         this.state = {
             model: props.value,
-            text: props.value.text,
             html: "",
-            type: props.value.type,
-            pinned: props.value.pinned,
             open: props.value.pinned,
             entryTypePopup: false,
             menuPopup: false,
@@ -125,11 +122,15 @@ class NotebookEntry extends React.Component {
     }
 
     attemptToggleChevron() {
-        this.setState(state => ({ open: state.pinned ? true : !state.open }));
+        this.setState(state => ({ open: state.model.pinned ? true : !state.open }));
     }
 
     attemptTogglePin() {
-        this.setState(state => ({ pinned: !state.pinned }));
+        this.setState(state => {
+            const model = { ...state.model, pinned: !state.model.pinned };
+
+            return { model };
+        });
     }
 
     attemptToggleEntryTypePopup(e) {
@@ -141,7 +142,11 @@ class NotebookEntry extends React.Component {
     }
 
     setEntryType(et) {
-        this.setState(state => ({ type: et, entryTypePopup: undefined }));
+        this.setState(state => {
+            const model = { ...state.model, type: et }
+
+            return { model, entryTypePopup: undefined };
+        });
     }
 
     insertBeforeEntry() {
@@ -178,20 +183,22 @@ class NotebookEntry extends React.Component {
     }
 
     focusOff() {
-        this.setState(state => ({ focus: false, entryTypePopup: false, menuPopup: false, open: state.pinned }));
+        this.setState(state => ({ focus: false, entryTypePopup: false, menuPopup: false, open: state.model.pinned }));
     }
 
     changeText(text) {
         this.setState((state) => {
-            valueChanged(state.type, text, this.props.cell);
-            return { text };
+            valueChanged(state.model.type, text, this.props.cell);
+            const model = { ...state.model, text }
+            return { model };
         });
     }
 
     changeEntryType(entryType) {
         this.setState((state) => {
-            valueChanged(entryType, state.text, this.props.cell);
-            return { type: entryType };
+            valueChanged(entryType, state.model.text, this.props.cell);
+            const model = { ...state.model, type: entryType }
+            return { model };
         });
     }
 
@@ -207,7 +214,7 @@ class NotebookEntry extends React.Component {
                 <div className="Upper">
                     <GutterChevron
                         open={this.state.open}
-                        pinned={this.state.pinned}
+                        pinned={this.state.model.pinned}
                         focus={this.state.focus}
                         onClick={this.attemptToggleChevron} />
                     <GutterMenu this={this} />
@@ -216,31 +223,31 @@ class NotebookEntry extends React.Component {
                 </div>
                 <div className="Lower">
                     <GutterPin
-                        pinned={this.state.pinned}
+                        pinned={this.state.model.pinned}
                         focus={this.state.focus}
                         onClick={this.attemptTogglePin} />
                     <GutterEntryType
-                        type={this.state.type}
+                        type={this.state.model.type}
                         focus={this.state.focus}
                         onClick={this.attemptToggleEntryTypePopup}>
                         {this.state.entryTypePopup &&
                             <div className="NE-Popup">
-                                <div className={this.state.type === EntryType.JAVASCRIPT ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.JAVASCRIPT)}><BsBraces size="0.7em" /> JavaScript</div>
-                                <div className={this.state.type === EntryType.MARKDOWN ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.MARKDOWN)}><BsMarkdown size="0.7em" /> Markdown</div>
-                                <div className={this.state.type === EntryType.HTML ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.HTML)}><BsCodeSlash size="0.7em" /> HTML</div>
-                                <div className={this.state.type === EntryType.TEX ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.TEX)}><BsSlashCircle size="0.7em" /> TeX</div>
+                                <div className={this.state.model.type === EntryType.JAVASCRIPT ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.JAVASCRIPT)}><BsBraces size="0.7em" /> JavaScript</div>
+                                <div className={this.state.model.type === EntryType.MARKDOWN ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.MARKDOWN)}><BsMarkdown size="0.7em" /> Markdown</div>
+                                <div className={this.state.model.type === EntryType.HTML ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.HTML)}><BsCodeSlash size="0.7em" /> HTML</div>
+                                <div className={this.state.model.type === EntryType.TEX ? "NE-PopupEntry-default" : "NE-PopupEntry"} onClick={() => this.changeEntryType(EntryType.TEX)}><BsSlashCircle size="0.7em" /> TeX</div>
                             </div>
                         }
                     </GutterEntryType>
                     <div className="NotebookBody">
                         <CodeMirror
-                            value={this.state.text}
+                            value={this.state.model.text}
                             onChange={this.changeText}
                             options={{
                                 viewportMargin: Infinity,
                                 lineNumbers: false,
                                 lineWrapping: true,
-                                mode: this.calculateMode(this.state.type)
+                                mode: this.calculateMode(this.state.model.type)
                             }}
                         />
                     </div>
@@ -251,7 +258,7 @@ class NotebookEntry extends React.Component {
             <div className="Closed">
                 <GutterChevron
                     open={this.state.open}
-                    pinned={this.state.pinned}
+                    pinned={this.state.model.pinned}
                     focus={this.state.focus}
                     onClick={this.attemptToggleChevron} />
                 <GutterMenu this={this} />
