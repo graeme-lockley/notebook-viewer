@@ -5,7 +5,7 @@ import "./App.css";
 import { CodeMirror } from "./components/CodeMirror";
 import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
 import { NotebookEntryType_HTML, NotebookEntryType_MARKDOWN, NotebookEntryType_JAVASCRIPT, NotebookEntryType_TEX } from "./components/NotebookEntryType";
-import { Library } from "@observablehq/stdlib";
+import { FileAttachments, Library } from "@observablehq/stdlib";
 import { CalculationPolicy, Runtime } from "./Runtime";
 import { parseCell } from "@observablehq/parser/src/parse.js"
 import { stringify } from "flatted"
@@ -597,6 +597,7 @@ function App() {
     const builtins = runtime.newModule();
 
     builtins.cell("FileAttachment", CalculationPolicy.Dormant).define([], () => library.FileAttachment());
+    builtins.cell("FileAttachments", CalculationPolicy.Dormant).define([], () => FileAttachments);
     builtins.cell("Arrow", CalculationPolicy.Dormant).define([], () => library.Arrow());
     builtins.cell("Inputs", CalculationPolicy.Dormant).define([], () => library.Inputs());
     builtins.cell("Mutable", CalculationPolicy.Dormant).define([], () => library.Mutable());
