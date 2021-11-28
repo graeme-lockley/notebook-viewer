@@ -349,9 +349,9 @@ class Notebook extends React.Component {
         super(props);
 
         this.state = {
-            entries: props.entries,
+            book: props.book,
             cells: new Map(),
-            nextId: Math.max(...[0, ...props.entries.map(entry => entry.id)])
+            nextId: Math.max(...[0, ...props.book.map(entry => entry.id)])
         };
 
         this.insertBeforeEntry = this.insertBeforeEntry.bind(this);
@@ -373,18 +373,18 @@ class Notebook extends React.Component {
 
     insertBeforeEntry(id) {
         this.setState(state => {
-            const entries = [...state.entries];
+            const entries = [...state.book];
 
             let idx = 0;
             while (true) {
                 if (idx === entries.length) {
                     entries.push(nextEntry(state.nextId));
-                    return { entries, id: state.nextId + 1 };
+                    return { book: entries, id: state.nextId + 1 };
                 }
 
                 if (id === entries[idx].id) {
                     entries.splice(idx, 0, nextEntry(entries));
-                    return { entries };
+                    return { book: entries };
                 }
 
                 idx += 1;
@@ -394,18 +394,18 @@ class Notebook extends React.Component {
 
     addAfterEntry(id) {
         this.setState(state => {
-            const entries = [...state.entries];
+            const entries = [...state.book];
 
             let idx = 0;
             while (true) {
                 if (idx === entries.length) {
                     entries.push(nextEntry(state.nextId));
-                    return { entries, id: state.nextId + 1 };
+                    return { book: entries, id: state.nextId + 1 };
                 }
 
                 if (id === entries[idx].id) {
                     entries.splice(idx + 1, 0, nextEntry(entries));
-                    return { entries };
+                    return { book: entries };
                 }
 
                 idx += 1;
@@ -415,19 +415,19 @@ class Notebook extends React.Component {
 
     deleteEntry(id) {
         this.setState(state => {
-            const entries = [...state.entries];
+            const entries = [...state.book];
 
             const cell = state.cells.get(id);
             if (cell !== undefined)
                 cell.remove();
 
-            return { entries: entries.filter(entry => entry.id !== id) };
+            return { book: entries.filter(entry => entry.id !== id) };
         });
     }
 
     moveEntryUp(id) {
         this.setState(state => {
-            const entries = [...state.entries];
+            const entries = [...state.book];
 
             let idx = 0;
             while (true) {
@@ -436,7 +436,7 @@ class Notebook extends React.Component {
                 if (id === entries[idx].id && idx > 0) {
                     const entry = entries.splice(idx, 1);
                     entries.splice(idx - 1, 0, entry[0]);
-                    return { entries };
+                    return { book: entries };
                 }
 
                 idx += 1;
@@ -446,7 +446,7 @@ class Notebook extends React.Component {
 
     moveEntryDown(id) {
         this.setState(state => {
-            const entries = [...state.entries];
+            const entries = [...state.book];
 
             let idx = 0;
             while (true) {
@@ -455,7 +455,7 @@ class Notebook extends React.Component {
                 if (id === entries[idx].id) {
                     const entry = entries.splice(idx, 1);
                     entries.splice(idx + 1, 0, entry[0]);
-                    return { entries };
+                    return { book: entries };
                 }
 
                 idx += 1;
@@ -464,7 +464,7 @@ class Notebook extends React.Component {
     }
 
     render() {
-        const notebookEntries = this.state.entries.map((entry) =>
+        const notebookEntries = this.state.book.map((entry) =>
             <NotebookEntry
                 key={entry.id}
                 value={entry}
@@ -529,7 +529,7 @@ function App() {
 
     window.module = module;
 
-    return <Notebook module={module} entries={notebook} />;
+    return <Notebook module={module} book={notebook} />;
 }
 
 export default App;
