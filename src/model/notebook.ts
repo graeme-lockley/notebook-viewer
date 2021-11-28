@@ -60,6 +60,45 @@ export const addAfter = (book: Book, id: ItemID): Book => {
     }
 }
 
+export const deleteEntry = (book: Book, id: ItemID): Book =>
+    book.filter(entry => entry.id !== id)
+
+export const moveEntryUp = (book: Book, id: ItemID): Book => {
+    const newBook = [...book];
+
+    let idx = 0;
+    while (true) {
+        if (idx === newBook.length)
+            return newBook;
+
+        if (id === newBook[idx].id && idx > 0) {
+            const entry = newBook.splice(idx, 1);
+            newBook.splice(idx - 1, 0, entry[0]);
+            return newBook;
+        }
+
+        idx += 1;
+    }
+};
+
+export const moveEntryDown = (book: Book, id: ItemID): Book => {
+    const newBook = [...book];
+
+    let idx = 0;
+    while (true) {
+        if (idx === newBook.length)
+            return newBook;
+
+        if (id === newBook[idx].id) {
+            const entry = newBook.splice(idx, 1);
+            newBook.splice(idx + 1, 0, entry[0]);
+            return newBook;
+        }
+
+        idx += 1;
+    }
+}
+
 const nextID = (book: Book): ItemID =>
     Math.max(...[0, ...book.map(entry => entry.id)]) + 1;
 

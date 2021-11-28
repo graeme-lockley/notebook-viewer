@@ -9,10 +9,10 @@ import { CalculationPolicy, Runtime } from "./Runtime";
 import { parseCell } from "@observablehq/parser/src/parse.js"
 import { stringify } from "flatted"
 
-import { EntryType, addAfter, insertBefore } from "./model/notebook"
+import { EntryType, addAfter, deleteEntry, insertBefore, moveEntryDown, moveEntryUp } from "./model/notebook"
 import { notebook } from "./model/initial"
 
-const library = new Library()
+const library = new Library();
 
 class EntryResults extends React.Component {
     constructor(props) {
@@ -179,11 +179,18 @@ class NotebookEntry extends React.Component {
     }
 
     focusOn() {
-        this.setState(() => ({ focus: true }));
+        this.setState(() => ({
+            focus: true
+        }));
     }
 
     focusOff() {
-        this.setState(state => ({ focus: false, entryTypePopup: false, menuPopup: false, open: state.model.pinned }));
+        this.setState(state => ({
+            focus: false,
+            entryTypePopup: false,
+            menuPopup: false,
+            open: state.model.pinned
+        }));
     }
 
     changeText(text) {
@@ -335,15 +342,6 @@ const renderValue = (type, text) => {
     }
 }
 
-const nextEntry = (id) => {
-    return {
-        id,
-        type: EntryType.JAVASCRIPT,
-        text: "1 + 2",
-        pinned: true
-    };
-};
-
 class Notebook extends React.Component {
     constructor(props) {
         super(props);
@@ -381,52 +379,18 @@ class Notebook extends React.Component {
 
     deleteEntry(id) {
         this.setState(state => {
-            const entries = [...state.book];
+            state.cells.delete(id);
 
-            const cell = state.cells.get(id);
-            if (cell !== undefined)
-                cell.remove();
-
-            return { book: entries.filter(entry => entry.id !== id) };
+            return { book: deleteEntry(state.book, id) };
         });
     }
 
     moveEntryUp(id) {
-        this.setState(state => {
-            const entries = [...state.book];
-
-            let idx = 0;
-            while (true) {
-                if (idx === entries.length) return {};
-
-                if (id === entries[idx].id && idx > 0) {
-                    const entry = entries.splice(idx, 1);
-                    entries.splice(idx - 1, 0, entry[0]);
-                    return { book: entries };
-                }
-
-                idx += 1;
-            }
-        });
+        this.setState(state => ({ book: moveEntryUp(state.book, id) }));
     }
 
     moveEntryDown(id) {
-        this.setState(state => {
-            const entries = [...state.book];
-
-            let idx = 0;
-            while (true) {
-                if (idx === entries.length) return {};
-
-                if (id === entries[idx].id) {
-                    const entry = entries.splice(idx, 1);
-                    entries.splice(idx + 1, 0, entry[0]);
-                    return { book: entries };
-                }
-
-                idx += 1;
-            }
-        });
+        this.setState(state => ({ book: moveEntryDown(state.book, id) }));
     }
 
     render() {
