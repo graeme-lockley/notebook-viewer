@@ -9,7 +9,7 @@ import { CalculationPolicy, Runtime } from "./Runtime";
 import { parseCell } from "@observablehq/parser/src/parse.js"
 import { stringify } from "flatted"
 
-import { EntryType } from "./model/notebook"
+import { EntryType, addAfter, insertBefore } from "./model/notebook"
 import { notebook } from "./model/initial"
 
 const library = new Library()
@@ -372,45 +372,11 @@ class Notebook extends React.Component {
     }
 
     insertBeforeEntry(id) {
-        this.setState(state => {
-            const entries = [...state.book];
-
-            let idx = 0;
-            while (true) {
-                if (idx === entries.length) {
-                    entries.push(nextEntry(state.nextId));
-                    return { book: entries, id: state.nextId + 1 };
-                }
-
-                if (id === entries[idx].id) {
-                    entries.splice(idx, 0, nextEntry(entries));
-                    return { book: entries };
-                }
-
-                idx += 1;
-            }
-        });
+        this.setState(state => ({ book: insertBefore(state.book, id) }));
     }
 
     addAfterEntry(id) {
-        this.setState(state => {
-            const entries = [...state.book];
-
-            let idx = 0;
-            while (true) {
-                if (idx === entries.length) {
-                    entries.push(nextEntry(state.nextId));
-                    return { book: entries, id: state.nextId + 1 };
-                }
-
-                if (id === entries[idx].id) {
-                    entries.splice(idx + 1, 0, nextEntry(entries));
-                    return { book: entries };
-                }
-
-                idx += 1;
-            }
-        });
+        this.setState(state => ({ book: addAfter(state.book, id) }));
     }
 
     deleteEntry(id) {

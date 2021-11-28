@@ -18,26 +18,49 @@ export interface Item {
 export type Book =
     Array<Item>;
 
-export const insertBefore = (book: Book, id: ItemID) => {
-    const newEntry = nextEntry(book);
+export const insertBefore = (book: Book, id: ItemID): Book => {
+    const newBook = [...book];
+
+    const newEntry = nextEntry(newBook);
 
     let idx = 0;
     while (true) {
-        if (idx === book.length) {
-            book.push(newEntry);
-            return;
+        if (idx === newBook.length) {
+            newBook.push(newEntry);
+            return newBook;
         }
 
-        if (id === book[idx].id) {
-            book.splice(idx, 0, newEntry);
-            return;
+        if (id === newBook[idx].id) {
+            newBook.splice(idx, 0, newEntry);
+            return newBook;
         }
 
         idx += 1;
     }
 }
 
-const nextID = (book: Book): ItemID => 
+export const addAfter = (book: Book, id: ItemID): Book => {
+    const newBook = [...book];
+
+    const newEntry = nextEntry(newBook);
+
+    let idx = 0;
+    while (true) {
+        if (idx === newBook.length) {
+            newBook.push(newEntry);
+            return newBook;
+        }
+
+        if (id === newBook[idx].id) {
+            newBook.splice(idx + 1, 0, newEntry);
+            return newBook;
+        }
+
+        idx += 1;
+    }
+}
+
+const nextID = (book: Book): ItemID =>
     Math.max(...[0, ...book.map(entry => entry.id)]) + 1;
 
 const nextEntry = (book: Book) => {
