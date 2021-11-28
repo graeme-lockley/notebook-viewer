@@ -3,11 +3,23 @@ import { BsBraces, BsChevronDown, BsChevronRight, BsCodeSlash, BsFillPinFill, Bs
 import { EntryType } from "../model/notebook";
 import "./NE-Gutter.css"
 
-export function Gutter(props) {
+export interface GutterProps {
+    focus: boolean;
+}
+
+export function Gutter(props: GutterProps) {
     return <div className={`NE-Gutter${props.focus ? "-focus" : ""}`} />
 }
 
-export function GutterChevron(props) {
+export interface GutterChevronProps {
+    focus: boolean;
+    open: boolean;
+    pinned: boolean;
+
+    onClick: () => void;
+}
+
+export function GutterChevron(props: GutterChevronProps) {
     if (!props.focus)
         return <Gutter focus={false} />
 
@@ -20,7 +32,14 @@ export function GutterChevron(props) {
     return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsChevronDown size="0.7em" /></div>
 }
 
-export function GutterPin(props) {
+export interface GutterPinProps {
+    focus: boolean;
+    pinned: boolean;
+
+    onClick: () => void;
+}
+
+export function GutterPin(props: GutterPinProps) {
     if (!props.focus)
         return <Gutter focus={false} />
 
@@ -30,7 +49,16 @@ export function GutterPin(props) {
     return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsPin size="0.7em" /></div>
 }
 
-export function GutterEntryType(props) {
+export interface GutterEntryTypeProps {
+    focus: boolean;
+    type: EntryType;
+
+    children: any;
+
+    onClick: () => void;
+}
+
+export function GutterEntryType(props: GutterEntryTypeProps) {
     if (!props.focus)
         return <Gutter focus={false} />
 
@@ -45,7 +73,6 @@ export function GutterEntryType(props) {
             return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsSlashCircle size="0.7em" />{props.children}</div>;
         default:
             return <div className="NE-Gutter-focus NE-Pointer" onClick={props.onClick}><BsXLg size="0.7em" />{props.children}</div>;
-
     }
 }
 
