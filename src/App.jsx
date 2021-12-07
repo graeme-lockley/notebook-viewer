@@ -1,9 +1,10 @@
 import React from "react"
-import { BsArrowDownSquare, BsArrowUpSquare, BsBraces, BsCodeSlash, BsMarkdown, BsSlashCircle, BsThreeDotsVertical, BsTrash } from "react-icons/bs";
-import { CgInsertAfterR, CgInsertBeforeR } from "react-icons/cg";
+import { BsBraces, BsCodeSlash, BsMarkdown, BsSlashCircle } from "react-icons/bs";
 import "./App.css";
 import { CodeMirror } from "./components/CodeMirror";
-import { Gutter, GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
+import { GutterChevron, GutterEntryType, GutterPin } from "./components/NE-Gutter";
+import { GutterMenu } from "./components/GutterMenu";
+
 import { FileAttachments, Library } from "@observablehq/stdlib";
 import { CalculationPolicy, Runtime } from "./Runtime";
 import { parseCell } from "@observablehq/parser/src/parse.js"
@@ -40,27 +41,7 @@ const cellObserver = (stuff) => ({
     }
 });
 
-function GutterMenu(props) {
-    const me = props.this;
-    const state = me.state;
 
-    if (!state.focus)
-        return (<Gutter focus={false} />);
-
-    return (
-        <div className="NE-Gutter-focus NE-Pointer" onClick={(e) => me.attemptToggleMenuPopup(e)}><BsThreeDotsVertical size="0.7em" />
-            {state.menuPopup &&
-                <div className="NE-Popup">
-                    <div className="NE-PopupEntry" onClick={me.insertBeforeEntry}><CgInsertAfterR size="0.7em" /> Insert before</div>
-                    <div className="NE-PopupEntry" onClick={me.addAfterEntry}><CgInsertBeforeR size="0.7em" /> Add after</div>
-                    <div className="NE-PopupEntry" onClick={me.moveEntryUp}><BsArrowUpSquare size="0.7em" /> Move up</div>
-                    <div className="NE-PopupEntry" onClick={me.moveEntryDown}><BsArrowDownSquare size="0.7em" /> Move down</div>
-                    <hr />
-                    <div className="NE-PopupEntry" onClick={() => me.deleteEntry()}><BsTrash size="0.7em" /> Delete</div>
-                </div>
-            }
-        </div>);
-}
 
 class NotebookEntry extends React.Component {
     constructor(props) {
@@ -105,11 +86,11 @@ class NotebookEntry extends React.Component {
         });
     }
 
-    attemptToggleEntryTypePopup(e) {
+    attemptToggleEntryTypePopup() {
         this.setState(state => ({ entryTypePopup: state.entryTypePopup === false ? true : false, menuPopup: false }));
     }
 
-    attemptToggleMenuPopup(e) {
+    attemptToggleMenuPopup() {
         this.setState(state => ({ menuPopup: state.menuPopup === false ? true : false, entryTypePopup: false }));
     }
 
